@@ -3,6 +3,7 @@ builder = "NIXPACKS"
 
 [build.nixpacks]
 aptPkgs = ["git"]
+nixPkgs = ["nodejs_22"]
 
 [deploy]
-startCommand = "node bot.mjs & node server.js"
+startCommand = "node bot.mjs & node .next/standalone/server.js"

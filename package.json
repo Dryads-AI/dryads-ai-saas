@@ -2,9 +2,12 @@
   "name": "dmms-ai-saas",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cp bot.mjs .next/standalone/bot.mjs",
     "start": "node bot.mjs & node .next/standalone/server.js",
     "lint": "eslint",
     "db:init": "npx tsx lib/init-db.ts"
