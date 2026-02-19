@@ -12,7 +12,6 @@ interface ChannelInfo {
   description: string
   configFields: { key: string; label: string; placeholder: string; type?: string }[]
   connectionMethod: string
-  available: boolean
 }
 
 const CHANNELS: ChannelInfo[] = [
@@ -22,7 +21,6 @@ const CHANNELS: ChannelInfo[] = [
     description: "Built-in browser chat — always available",
     configFields: [],
     connectionMethod: "built-in",
-    available: true,
   },
   {
     type: "whatsapp",
@@ -30,15 +28,13 @@ const CHANNELS: ChannelInfo[] = [
     description: "Scan QR code to link as WhatsApp Web device",
     configFields: [],
     connectionMethod: "qr",
-    available: true,
   },
   {
     type: "telegram",
     name: "Telegram",
-    description: "Connect a Telegram bot via Bot Token",
-    configFields: [{ key: "botToken", label: "Bot Token", placeholder: "123456:ABC-DEF..." }],
+    description: "Connect via Telegram Bot API",
+    configFields: [{ key: "botToken", label: "Bot Token", placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" }],
     connectionMethod: "token",
-    available: true,
   },
   {
     type: "discord",
@@ -49,144 +45,210 @@ const CHANNELS: ChannelInfo[] = [
       { key: "applicationId", label: "Application ID", placeholder: "e.g. 123456789012345678" },
     ],
     connectionMethod: "token",
-    available: true,
   },
   {
     type: "slack",
     name: "Slack",
-    description: "Connect via Slack Bot + App Token",
+    description: "Connect via Slack Bolt SDK",
     configFields: [
-      { key: "botToken", label: "Bot Token", placeholder: "xoxb-..." },
-      { key: "appToken", label: "App Token", placeholder: "xapp-..." },
+      { key: "botToken", label: "Bot Token (xoxb-)", placeholder: "xoxb-..." },
+      { key: "appToken", label: "App Token (xapp-)", placeholder: "xapp-..." },
+      { key: "signingSecret", label: "Signing Secret", placeholder: "Slack signing secret" },
     ],
     connectionMethod: "token",
-    available: false,
   },
   {
     type: "signal",
     name: "Signal",
-    description: "Signal via signal-cli bridge",
-    configFields: [],
-    connectionMethod: "cli",
-    available: false,
-  },
-  {
-    type: "line",
-    name: "LINE",
-    description: "LINE Messaging API",
-    configFields: [{ key: "channelAccessToken", label: "Channel Access Token", placeholder: "LINE channel access token" }],
-    connectionMethod: "token",
-    available: false,
-  },
-  {
-    type: "matrix",
-    name: "Matrix",
-    description: "Matrix (Element, etc.) via homeserver",
+    description: "Connect via signal-cli bridge",
     configFields: [
-      { key: "homeserver", label: "Homeserver URL", placeholder: "https://matrix.org" },
-      { key: "accessToken", label: "Access Token", placeholder: "Matrix access token" },
+      { key: "signalNumber", label: "Phone Number", placeholder: "+1234567890" },
+      { key: "signalCliPath", label: "signal-cli API URL", placeholder: "http://localhost:8080" },
     ],
-    connectionMethod: "token",
-    available: false,
-  },
-  {
-    type: "msteams",
-    name: "MS Teams",
-    description: "Microsoft Teams via Bot Framework",
-    configFields: [],
-    connectionMethod: "oauth",
-    available: false,
-  },
-  {
-    type: "googlechat",
-    name: "Google Chat",
-    description: "Google Chat via Service Account",
-    configFields: [],
-    connectionMethod: "service-account",
-    available: false,
-  },
-  {
-    type: "mattermost",
-    name: "Mattermost",
-    description: "Mattermost via Webhook integration",
-    configFields: [{ key: "webhookUrl", label: "Webhook URL", placeholder: "https://mattermost.example.com/hooks/..." }],
-    connectionMethod: "webhook",
-    available: false,
-  },
-  {
-    type: "irc",
-    name: "IRC",
-    description: "IRC via irc-framework bridge",
-    configFields: [
-      { key: "server", label: "Server", placeholder: "irc.libera.chat" },
-      { key: "channel", label: "Channel", placeholder: "#my-channel" },
-    ],
-    connectionMethod: "config",
-    available: false,
-  },
-  {
-    type: "twitch",
-    name: "Twitch",
-    description: "Twitch Chat via OAuth",
-    configFields: [{ key: "oauthToken", label: "OAuth Token", placeholder: "oauth:..." }],
-    connectionMethod: "token",
-    available: false,
-  },
-  {
-    type: "nostr",
-    name: "Nostr",
-    description: "Nostr decentralized messaging",
-    configFields: [],
-    connectionMethod: "key",
-    available: false,
-  },
-  {
-    type: "zalo",
-    name: "Zalo",
-    description: "Zalo Official Account API",
-    configFields: [{ key: "oaAccessToken", label: "OA Access Token", placeholder: "Zalo OA access token" }],
-    connectionMethod: "token",
-    available: false,
+    connectionMethod: "bridge",
   },
   {
     type: "imessage",
     name: "iMessage",
-    description: "iMessage via BlueBubbles API",
-    configFields: [],
+    description: "Connect via BlueBubbles REST API",
+    configFields: [
+      { key: "serverUrl", label: "BlueBubbles Server URL", placeholder: "http://localhost:1234" },
+      { key: "password", label: "Server Password", placeholder: "BlueBubbles password", type: "password" },
+    ],
     connectionMethod: "api",
-    available: false,
+  },
+  {
+    type: "googlechat",
+    name: "Google Chat",
+    description: "Connect via Google Chat API webhook",
+    configFields: [
+      { key: "webhookUrl", label: "Webhook URL", placeholder: "https://chat.googleapis.com/v1/spaces/..." },
+      { key: "serviceAccountKey", label: "Service Account Key (JSON)", placeholder: "Paste service account JSON" },
+    ],
+    connectionMethod: "webhook",
+  },
+  {
+    type: "msteams",
+    name: "Microsoft Teams",
+    description: "Connect via Bot Framework",
+    configFields: [
+      { key: "appId", label: "App ID", placeholder: "Microsoft App ID" },
+      { key: "appPassword", label: "App Password", placeholder: "Microsoft App Password", type: "password" },
+    ],
+    connectionMethod: "oauth",
+  },
+  {
+    type: "irc",
+    name: "IRC",
+    description: "Connect to any IRC server",
+    configFields: [
+      { key: "server", label: "Server", placeholder: "irc.libera.chat" },
+      { key: "port", label: "Port", placeholder: "6697" },
+      { key: "channel", label: "Channel", placeholder: "#my-channel" },
+      { key: "nickname", label: "Nickname", placeholder: "dmms-ai" },
+    ],
+    connectionMethod: "config",
+  },
+  {
+    type: "line",
+    name: "LINE",
+    description: "Connect via LINE Messaging API",
+    configFields: [
+      { key: "channelAccessToken", label: "Channel Access Token", placeholder: "LINE channel access token" },
+      { key: "channelSecret", label: "Channel Secret", placeholder: "LINE channel secret" },
+    ],
+    connectionMethod: "token",
+  },
+  {
+    type: "matrix",
+    name: "Matrix",
+    description: "Connect via Matrix protocol (Element, etc.)",
+    configFields: [
+      { key: "homeserver", label: "Homeserver URL", placeholder: "https://matrix.org" },
+      { key: "accessToken", label: "Access Token", placeholder: "Matrix access token" },
+      { key: "userId", label: "Bot User ID", placeholder: "@dmms-ai:matrix.org" },
+    ],
+    connectionMethod: "token",
+  },
+  {
+    type: "twitch",
+    name: "Twitch",
+    description: "Connect to Twitch chat via IRC",
+    configFields: [
+      { key: "oauthToken", label: "OAuth Token", placeholder: "oauth:abc123..." },
+      { key: "channel", label: "Channel Name", placeholder: "your_channel" },
+      { key: "botUsername", label: "Bot Username", placeholder: "dmms_ai_bot" },
+    ],
+    connectionMethod: "token",
+  },
+  {
+    type: "nostr",
+    name: "Nostr",
+    description: "Decentralized DMs via NIP-04",
+    configFields: [
+      { key: "privateKey", label: "Private Key (nsec)", placeholder: "nsec1...", type: "password" },
+      { key: "relays", label: "Relay URLs (comma-separated)", placeholder: "wss://relay.damus.io,wss://nos.lol" },
+    ],
+    connectionMethod: "key",
+  },
+  {
+    type: "zalo",
+    name: "Zalo",
+    description: "Connect via Zalo Bot API",
+    configFields: [
+      { key: "oaAccessToken", label: "OA Access Token", placeholder: "Zalo OA access token" },
+      { key: "oaSecretKey", label: "OA Secret Key", placeholder: "Zalo OA secret key", type: "password" },
+    ],
+    connectionMethod: "token",
+  },
+  {
+    type: "zalo_personal",
+    name: "Zalo Personal",
+    description: "Connect personal Zalo via QR login",
+    configFields: [],
+    connectionMethod: "qr",
+  },
+  {
+    type: "mattermost",
+    name: "Mattermost",
+    description: "Connect via Mattermost Bot API",
+    configFields: [
+      { key: "serverUrl", label: "Server URL", placeholder: "https://mattermost.example.com" },
+      { key: "botToken", label: "Bot Token", placeholder: "Mattermost bot token" },
+    ],
+    connectionMethod: "token",
+  },
+  {
+    type: "nextcloud",
+    name: "Nextcloud Talk",
+    description: "Connect to self-hosted Nextcloud Talk",
+    configFields: [
+      { key: "serverUrl", label: "Nextcloud URL", placeholder: "https://cloud.example.com" },
+      { key: "username", label: "Username", placeholder: "bot-user" },
+      { key: "password", label: "App Password", placeholder: "Nextcloud app password", type: "password" },
+    ],
+    connectionMethod: "api",
+  },
+  {
+    type: "feishu",
+    name: "Feishu / Lark",
+    description: "Connect via Feishu WebSocket bot",
+    configFields: [
+      { key: "appId", label: "App ID", placeholder: "Feishu App ID" },
+      { key: "appSecret", label: "App Secret", placeholder: "Feishu App Secret", type: "password" },
+    ],
+    connectionMethod: "websocket",
+  },
+  {
+    type: "tlon",
+    name: "Tlon (Urbit)",
+    description: "Connect via Urbit messenger",
+    configFields: [
+      { key: "shipUrl", label: "Ship URL", placeholder: "http://localhost:8080" },
+      { key: "shipCode", label: "Access Code", placeholder: "+code from your ship", type: "password" },
+    ],
+    connectionMethod: "api",
   },
   {
     type: "viber",
     name: "Viber",
-    description: "Viber Bot API",
-    configFields: [{ key: "botToken", label: "Bot Token", placeholder: "Viber bot token" }],
+    description: "Connect via Viber Bot API",
+    configFields: [
+      { key: "botToken", label: "Auth Token", placeholder: "Viber bot auth token" },
+      { key: "botName", label: "Bot Name", placeholder: "DMMS AI" },
+    ],
     connectionMethod: "token",
-    available: false,
   },
   {
     type: "wechat",
     name: "WeChat",
-    description: "WeChat Official Account",
-    configFields: [],
+    description: "Connect via WeChat Official Account",
+    configFields: [
+      { key: "appId", label: "App ID", placeholder: "WeChat App ID" },
+      { key: "appSecret", label: "App Secret", placeholder: "WeChat App Secret", type: "password" },
+      { key: "token", label: "Token", placeholder: "Verification token" },
+    ],
     connectionMethod: "oauth",
-    available: false,
   },
   {
     type: "rocketchat",
     name: "Rocket.Chat",
-    description: "Rocket.Chat via Webhook",
-    configFields: [{ key: "webhookUrl", label: "Webhook URL", placeholder: "https://rocketchat.example.com/hooks/..." }],
+    description: "Connect via Rocket.Chat webhook",
+    configFields: [
+      { key: "serverUrl", label: "Server URL", placeholder: "https://rocketchat.example.com" },
+      { key: "webhookToken", label: "Webhook Token", placeholder: "Rocket.Chat webhook token" },
+    ],
     connectionMethod: "webhook",
-    available: false,
   },
   {
     type: "threema",
     name: "Threema",
-    description: "Threema Gateway",
-    configFields: [{ key: "gatewayId", label: "Gateway ID", placeholder: "*MYGATEWAY" }],
+    description: "Connect via Threema Gateway",
+    configFields: [
+      { key: "gatewayId", label: "Gateway ID", placeholder: "*MYID" },
+      { key: "apiSecret", label: "API Secret", placeholder: "Threema API secret", type: "password" },
+    ],
     connectionMethod: "gateway",
-    available: false,
   },
 ]
 
@@ -200,12 +262,24 @@ interface SavedChannel {
 
 // ── WhatsApp QR Component ────────────────────────────────────────────
 
-function WhatsAppQrCard({ saved, onDisconnect }: { saved?: SavedChannel; onDisconnect: () => void }) {
-  const [waStatus, setWaStatus] = useState<string>(saved?.status || "disconnected")
-  const [qrData, setQrData] = useState<string | null>(null)
+function QrScanCard({
+  channelType,
+  channelName,
+  description,
+  saved,
+  onDisconnect,
+}: {
+  channelType: string
+  channelName: string
+  description: string
+  saved?: SavedChannel
+  onDisconnect: () => void
+}) {
+  const [status, setStatus] = useState<string>(saved?.status || "disconnected")
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
-  const pollRef = useRef<NodeJS.Timeout | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastQr = useRef<string | null>(null)
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -218,20 +292,18 @@ function WhatsAppQrCard({ saved, onDisconnect }: { saved?: SavedChannel; onDisco
     stopPolling()
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch("/api/channels/whatsapp/qr")
+        const res = await fetch(`/api/channels/${channelType}/qr`)
         const data = await res.json()
 
         if (data.status === "connected") {
-          setWaStatus("connected")
-          setQrData(null)
+          setStatus("connected")
           setQrDataUrl(null)
           setConnecting(false)
           stopPolling()
         } else if (data.status === "qr" && data.qr) {
-          setWaStatus("qr")
-          if (data.qr !== qrData) {
-            setQrData(data.qr)
-            // Generate QR code data URL using the qrcode library (loaded dynamically)
+          setStatus("qr")
+          if (data.qr !== lastQr.current) {
+            lastQr.current = data.qr
             try {
               const QRCode = (await import("qrcode")).default
               const url = await QRCode.toDataURL(data.qr, { width: 256, margin: 2 })
@@ -241,66 +313,51 @@ function WhatsAppQrCard({ saved, onDisconnect }: { saved?: SavedChannel; onDisco
             }
           }
         } else if (data.status === "logged_out") {
-          setWaStatus("logged_out")
+          setStatus("logged_out")
           setConnecting(false)
           stopPolling()
         } else if (data.status === "error") {
-          setWaStatus("error")
+          setStatus("error")
           setConnecting(false)
           stopPolling()
         }
       } catch {
-        // Network error — keep polling
+        // keep polling
       }
     }, 2000)
-  }, [stopPolling, qrData])
+  }, [stopPolling, channelType])
 
   useEffect(() => {
     return () => stopPolling()
   }, [stopPolling])
 
-  // If already connected, show connected state
   useEffect(() => {
-    if (saved?.enabled && saved?.status === "connected") {
-      setWaStatus("connected")
-    }
+    if (saved?.enabled && saved?.status === "connected") setStatus("connected")
   }, [saved])
 
   const handleConnect = async () => {
     setConnecting(true)
-    setWaStatus("connecting")
-    setQrData(null)
+    setStatus("connecting")
     setQrDataUrl(null)
-
     try {
-      const res = await fetch("/api/channels/whatsapp/connect", { method: "POST" })
+      const res = await fetch(`/api/channels/${channelType}/connect`, { method: "POST" })
       const data = await res.json()
-
-      if (data.ok) {
-        startPolling()
-      } else {
-        setWaStatus("error")
-        setConnecting(false)
-      }
+      if (data.ok) startPolling()
+      else { setStatus("error"); setConnecting(false) }
     } catch {
-      setWaStatus("error")
-      setConnecting(false)
+      setStatus("error"); setConnecting(false)
     }
   }
 
   const handleDisconnect = async () => {
     stopPolling()
     setConnecting(false)
-    setQrData(null)
     setQrDataUrl(null)
-
     try {
-      await fetch("/api/channels/whatsapp/connect", { method: "DELETE" })
-      setWaStatus("disconnected")
+      await fetch(`/api/channels/${channelType}/connect`, { method: "DELETE" })
+      setStatus("disconnected")
       onDisconnect()
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
 
   return (
@@ -308,78 +365,58 @@ function WhatsAppQrCard({ saved, onDisconnect }: { saved?: SavedChannel; onDisco
       <div className="flex items-start justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            WhatsApp
-            {waStatus === "connected" && <Badge variant="success">Connected</Badge>}
-            {(waStatus === "connecting" || waStatus === "qr") && (
+            {channelName}
+            {status === "connected" && <Badge variant="success">Connected</Badge>}
+            {(status === "connecting" || status === "qr") && (
               <Badge variant="outline" className="animate-pulse">Connecting...</Badge>
             )}
           </CardTitle>
-          <CardDescription className="mt-1">
-            Scan QR code to link as WhatsApp Web device
-          </CardDescription>
+          <CardDescription className="mt-1">{description}</CardDescription>
         </div>
       </div>
 
-      {/* QR Code Display */}
-      {waStatus === "qr" && qrDataUrl && (
+      {status === "qr" && qrDataUrl && (
         <div className="mt-4 flex flex-col items-center">
           <div className="rounded-lg border border-zinc-700 bg-white p-2">
-            <img src={qrDataUrl} alt="WhatsApp QR Code" width={256} height={256} />
+            <img src={qrDataUrl} alt={`${channelName} QR Code`} width={256} height={256} />
           </div>
           <p className="mt-2 text-xs text-zinc-400">
-            Open WhatsApp on your phone → Settings → Linked Devices → Link a Device
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            QR code refreshes automatically every ~20 seconds
+            Scan this QR code with your {channelName} app to link
           </p>
         </div>
       )}
 
-      {/* Connecting spinner */}
-      {waStatus === "connecting" && !qrDataUrl && (
+      {status === "connecting" && !qrDataUrl && (
         <div className="mt-4 flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
           <p className="text-sm text-zinc-400">Waiting for QR code...</p>
         </div>
       )}
 
-      {/* Connected state */}
-      {waStatus === "connected" && (
-        <div className="mt-4">
-          <p className="text-sm text-teal-400">
-            WhatsApp is linked and receiving messages. AI will respond automatically.
-          </p>
-        </div>
+      {status === "connected" && (
+        <p className="mt-4 text-sm text-teal-400">
+          {channelName} is linked and receiving messages. AI responds automatically.
+        </p>
       )}
 
-      {/* Logged out / error */}
-      {waStatus === "logged_out" && (
-        <div className="mt-4">
-          <p className="text-sm text-yellow-400">
-            Session was logged out from the phone. Click Connect to re-link.
-          </p>
-        </div>
+      {status === "logged_out" && (
+        <p className="mt-4 text-sm text-yellow-400">
+          Session logged out. Click Connect to re-link.
+        </p>
       )}
 
-      {waStatus === "error" && (
-        <div className="mt-4">
-          <p className="text-sm text-red-400">
-            Connection error. Try connecting again.
-          </p>
-        </div>
+      {status === "error" && (
+        <p className="mt-4 text-sm text-red-400">Connection error. Try again.</p>
       )}
 
-      {/* Buttons */}
       <div className="mt-4 flex gap-2">
-        {waStatus !== "connected" && waStatus !== "qr" && waStatus !== "connecting" && (
+        {status !== "connected" && status !== "qr" && status !== "connecting" && (
           <Button size="sm" onClick={handleConnect} disabled={connecting}>
-            {connecting ? "Connecting..." : "Connect WhatsApp"}
+            {connecting ? "Connecting..." : `Connect ${channelName}`}
           </Button>
         )}
-        {(waStatus === "connected" || waStatus === "qr" || waStatus === "connecting") && (
-          <Button size="sm" variant="ghost" onClick={handleDisconnect}>
-            Disconnect
-          </Button>
+        {(status === "connected" || status === "qr" || status === "connecting") && (
+          <Button size="sm" variant="ghost" onClick={handleDisconnect}>Disconnect</Button>
         )}
       </div>
     </Card>
@@ -399,6 +436,7 @@ export default function ChannelsPage() {
     fetch("/api/channels")
       .then((r) => r.json())
       .then((channels) => {
+        if (!Array.isArray(channels)) return
         const parsed = channels.map((ch: SavedChannel & { config: string | Record<string, string> }) => ({
           ...ch,
           config: typeof ch.config === "string" ? JSON.parse(ch.config || "{}") : ch.config,
@@ -433,40 +471,31 @@ export default function ChannelsPage() {
         return [...prev, updated]
       })
 
-      // Auto-register webhook for Telegram
+      // Channel-specific post-save actions
       if (channelType === "telegram" && enabled && formData.botToken) {
-        setStatusMessage({ type: "success", text: "Config saved. Registering Telegram webhook..." })
+        setStatusMessage({ type: "success", text: "Saved! Registering Telegram webhook..." })
         const whRes = await fetch("/api/channels/telegram/webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "register" }),
         })
         const whData = await whRes.json()
-        if (whData.ok) {
-          setStatusMessage({
-            type: "success",
-            text: `Telegram connected! Bot: @${whData.botUsername || "your-bot"}. Send it a message to test.`,
-          })
-        } else {
-          setStatusMessage({
-            type: "error",
-            text: `Webhook registration failed: ${whData.description || whData.error || "Unknown error"}`,
-          })
-        }
+        setStatusMessage(whData.ok
+          ? { type: "success", text: `Telegram connected! Bot: @${whData.botUsername || "your-bot"}` }
+          : { type: "error", text: `Webhook failed: ${whData.description || whData.error || "Unknown"}` }
+        )
       } else if (channelType === "telegram" && !enabled) {
         await fetch("/api/channels/telegram/webhook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "unregister" }),
-        })
+        }).catch(() => {})
         setStatusMessage({ type: "success", text: "Telegram disconnected." })
-      } else if (channelType === "discord" && enabled) {
-        setStatusMessage({
-          type: "success",
-          text: "Discord config saved! The bot will connect automatically on next gateway restart.",
-        })
+      } else if (enabled) {
+        const ch = CHANNELS.find((c) => c.type === channelType)
+        setStatusMessage({ type: "success", text: `${ch?.name || channelType} saved & enabled! Gateway will connect on next restart.` })
       } else {
-        setStatusMessage({ type: "success", text: "Channel saved!" })
+        setStatusMessage({ type: "success", text: "Channel disconnected." })
       }
 
       setConfiguring(null)
@@ -486,7 +515,7 @@ export default function ChannelsPage() {
       <div>
         <h1 className="text-2xl font-bold text-zinc-100">Channels</h1>
         <p className="text-sm text-zinc-400">
-          Connect messaging platforms to your AI assistant — 20+ platforms supported
+          Connect 24 messaging platforms to your AI assistant
         </p>
       </div>
 
@@ -507,16 +536,19 @@ export default function ChannelsPage() {
           const saved = getSavedChannel(ch.type)
           const isConfiguring = configuring === ch.type
 
-          // WhatsApp gets a special QR card
-          if (ch.type === "whatsapp") {
+          // QR-based channels (WhatsApp, Zalo Personal)
+          if (ch.connectionMethod === "qr") {
             return (
-              <WhatsAppQrCard
+              <QrScanCard
                 key={ch.type}
+                channelType={ch.type}
+                channelName={ch.name}
+                description={ch.description}
                 saved={saved}
                 onDisconnect={() => {
                   setSavedChannels((prev) =>
                     prev.map((c) =>
-                      c.channelType === "whatsapp" ? { ...c, enabled: false, status: "disconnected" } : c
+                      c.channelType === ch.type ? { ...c, enabled: false, status: "disconnected" } : c
                     )
                   )
                 }}
@@ -524,18 +556,27 @@ export default function ChannelsPage() {
             )
           }
 
+          // Web Chat — always active
+          if (ch.type === "web") {
+            return (
+              <Card key={ch.type} className="relative">
+                <CardTitle className="text-base">{ch.name}</CardTitle>
+                <CardDescription className="mt-1">{ch.description}</CardDescription>
+                <div className="mt-4">
+                  <Badge variant="success">Always Active</Badge>
+                </div>
+              </Card>
+            )
+          }
+
+          // Token/config-based channels
           return (
             <Card key={ch.type} className="relative">
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-base">
                     {ch.name}
-                    {!ch.available && (
-                      <Badge variant="outline">Coming Soon</Badge>
-                    )}
-                    {saved?.enabled && (
-                      <Badge variant="success">Connected</Badge>
-                    )}
+                    {saved?.enabled && <Badge variant="success">Connected</Badge>}
                   </CardTitle>
                   <CardDescription className="mt-1">{ch.description}</CardDescription>
                 </div>
@@ -562,55 +603,32 @@ export default function ChannelsPage() {
               )}
 
               <div className="mt-4 flex gap-2">
-                {ch.available && ch.type !== "web" && (
+                {isConfiguring ? (
                   <>
-                    {isConfiguring ? (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => save(ch.type, true)}
-                          disabled={saving}
-                        >
-                          {saving ? "Connecting..." : "Save & Connect"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setConfiguring(null)
-                            setFormData({})
-                            setStatusMessage(null)
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setConfiguring(ch.type)
-                          setFormData(saved?.config || {})
-                          setStatusMessage(null)
-                        }}
-                      >
-                        {saved ? "Configure" : "Set Up"}
-                      </Button>
-                    )}
-                    {saved?.enabled && !isConfiguring && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => save(ch.type, false)}
-                      >
-                        Disconnect
-                      </Button>
-                    )}
+                    <Button size="sm" onClick={() => save(ch.type, true)} disabled={saving}>
+                      {saving ? "Connecting..." : "Save & Connect"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setConfiguring(null); setFormData({}); setStatusMessage(null) }}
+                    >
+                      Cancel
+                    </Button>
                   </>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setConfiguring(ch.type); setFormData(saved?.config || {}); setStatusMessage(null) }}
+                  >
+                    {saved ? "Configure" : "Set Up"}
+                  </Button>
                 )}
-                {ch.type === "web" && (
-                  <Badge variant="success">Always Active</Badge>
+                {saved?.enabled && !isConfiguring && (
+                  <Button size="sm" variant="ghost" onClick={() => save(ch.type, false)}>
+                    Disconnect
+                  </Button>
                 )}
               </div>
             </Card>

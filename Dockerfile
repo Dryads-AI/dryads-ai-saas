@@ -5,7 +5,11 @@ FROM base AS builder
 WORKDIR /app
 
 # Alpine needs git + build tools for native deps (libsignal, sharp)
-RUN apk add --no-cache git python3 make g++
+RUN apk add --no-cache git python3 make g++ openssh
+
+# Rewrite git+ssh:// URLs to https:// so npm can fetch without SSH keys
+RUN git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/" && \
+    git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 COPY package*.json ./
 RUN npm ci
@@ -13,7 +17,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# ── Prune dev dependencies ───────────────────────────────────────────
+# Prune dev dependencies
 RUN npm prune --omit=dev
 
 # ── Production stage ─────────────────────────────────────────────────

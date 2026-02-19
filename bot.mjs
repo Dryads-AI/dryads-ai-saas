@@ -839,6 +839,122 @@ async function startDiscord() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// CHANNEL: SLACK
+// ══════════════════════════════════════════════════════════════════════
+
+async function startSlack() {
+  let slackUserId = null
+  let slackConfig = null
+
+  try {
+    const res = await pool.query(
+      'SELECT "userId", config FROM "UserChannel" WHERE "channelType" = $1 AND enabled = true LIMIT 1',
+      ["slack"]
+    )
+    if (res.rows.length === 0) { console.log("[SLACK] No Slack channel enabled — skipping"); return }
+    slackUserId = res.rows[0].userId
+    const raw = res.rows[0].config
+    slackConfig = typeof raw === "string" ? JSON.parse(raw) : raw
+  } catch (err) { console.error("[SLACK] DB error:", err.message); return }
+
+  const botToken = slackConfig?.botToken || process.env.SLACK_BOT_TOKEN
+  const appToken = slackConfig?.appToken || process.env.SLACK_APP_TOKEN
+  if (!botToken || !appToken) { console.log("[SLACK] Missing bot/app token — skipping"); return }
+
+  console.log("[SLACK] Starting Slack bot...")
+
+  try {
+    const { default: bolt } = await import("@slack/bolt")
+    const app = new bolt.App({
+      token: botToken,
+      appToken: appToken,
+      socketMode: true,
+    })
+
+    app.message(async ({ message, say }) => {
+      if (message.subtype) return
+      const text = message.text?.trim()
+      if (!text) return
+
+      const peer = `${message.channel}:${message.user}`
+      console.log(`[SLACK:Receive] From ${message.user}: "${text.slice(0, 60)}"`)
+
+      const ctx = {
+        channelType: "slack",
+        channelName: "Slack",
+        channelPeer: peer,
+        text,
+        startTime: Date.now(),
+        userId: slackUserId,
+        toolsUsed: [],
+        onTyping: () => {},
+      }
+
+      try {
+        await processSharedPipeline(ctx)
+        await say(ctx.reply)
+        console.log(`[SLACK] Reply sent`)
+      } catch (err) {
+        console.error("[SLACK] Pipeline error:", err.message)
+        await say("Sorry, something went wrong.").catch(() => {})
+      }
+    })
+
+    await app.start()
+    console.log("[SLACK] Connected!")
+    await writeChannelEvent(slackUserId, "slack", "connected", null)
+    await pool.query(
+      'UPDATE "UserChannel" SET status = $1, "updatedAt" = NOW() WHERE "userId" = $2 AND "channelType" = $3',
+      ["connected", slackUserId, "slack"]
+    ).catch(() => {})
+  } catch (err) {
+    console.error("[SLACK] Failed:", err.message)
+    await writeChannelEvent(slackUserId, "slack", "error", err.message).catch(() => {})
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GENERIC CHANNEL STARTER (for channels configured in DB)
+// Polls for enabled channels and logs their status.
+// Actual connection logic will be added per-channel as SDKs are integrated.
+// ══════════════════════════════════════════════════════════════════════
+
+async function startGenericChannels() {
+  const genericTypes = [
+    "signal", "imessage", "googlechat", "msteams", "irc", "line",
+    "matrix", "twitch", "nostr", "zalo", "zalo_personal", "mattermost",
+    "nextcloud", "feishu", "tlon", "viber", "wechat", "rocketchat", "threema"
+  ]
+
+  for (const channelType of genericTypes) {
+    try {
+      const res = await pool.query(
+        'SELECT "userId", config FROM "UserChannel" WHERE "channelType" = $1 AND enabled = true LIMIT 1',
+        [channelType]
+      )
+      if (res.rows.length === 0) continue
+
+      const userId = res.rows[0].userId
+      const raw = res.rows[0].config
+      const config = typeof raw === "string" ? JSON.parse(raw) : raw
+
+      // Check if any config fields are populated
+      const hasConfig = Object.values(config || {}).some(v => v && String(v).trim())
+      if (!hasConfig) continue
+
+      console.log(`[${channelType.toUpperCase()}] Channel enabled — config saved, gateway ready`)
+      await pool.query(
+        'UPDATE "UserChannel" SET status = $1, "updatedAt" = NOW() WHERE "userId" = $2 AND "channelType" = $3',
+        ["ready", userId, channelType]
+      ).catch(() => {})
+      await writeChannelEvent(userId, channelType, "ready", "Configuration saved, awaiting connection").catch(() => {})
+    } catch (err) {
+      console.error(`[${channelType.toUpperCase()}] Error:`, err.message)
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // MAIN
 // ══════════════════════════════════════════════════════════════════════
 
@@ -879,16 +995,19 @@ async function main() {
   console.log("[Gateway] Starting channels...")
 
   // Start all channels concurrently
-  const results = await Promise.allSettled([
-    startTelegram(),
-    startWhatsApp(),
-    startDiscord(),
-  ])
+  const channelStarters = [
+    { name: "Telegram", fn: startTelegram },
+    { name: "WhatsApp", fn: startWhatsApp },
+    { name: "Discord", fn: startDiscord },
+    { name: "Slack", fn: startSlack },
+    { name: "Generic", fn: startGenericChannels },
+  ]
+
+  const results = await Promise.allSettled(channelStarters.map(c => c.fn()))
 
   for (const [i, result] of results.entries()) {
-    const names = ["Telegram", "WhatsApp", "Discord"]
     if (result.status === "rejected") {
-      console.error(`[Gateway] ${names[i]} failed to start:`, result.reason?.message || result.reason)
+      console.error(`[Gateway] ${channelStarters[i].name} failed:`, result.reason?.message || result.reason)
     }
   }
 
