@@ -1,7 +1,14 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  serverExternalPackages: [
+    "discord.js",
+    "grammy",
+    "@slack/bolt",
+    "socket.io",
+    "bcryptjs",
+    "pg",
+  ],
+}
 
-export default nextConfig;
+export default nextConfig
