@@ -49,9 +49,13 @@ const CHANNELS: ChannelInfo[] = [
   {
     type: "whatsapp",
     name: "WhatsApp",
-    description: "WhatsApp via Baileys",
-    configFields: [],
-    available: false,
+    description: "WhatsApp Business Cloud API",
+    configFields: [
+      { key: "phoneNumberId", label: "Phone Number ID", placeholder: "e.g. 123456789012345" },
+      { key: "accessToken", label: "Permanent Access Token", placeholder: "EAAxxxxxxx..." },
+      { key: "verifyToken", label: "Webhook Verify Token", placeholder: "Any secret string (e.g. dmmsai_verify)" },
+    ],
+    available: true,
   },
   {
     type: "signal",
@@ -152,6 +156,19 @@ export default function ChannelsPage() {
         }
         return [...prev, updated]
       })
+
+      // WhatsApp setup instructions
+      if (channelType === "whatsapp" && enabled && formData.accessToken) {
+        const webhookUrl = `${window.location.origin}/api/webhooks/whatsapp`
+        setStatusMessage({
+          type: "success",
+          text: `WhatsApp connected! Now go to Meta Developer Portal → Your App → WhatsApp → Configuration → Set webhook URL to: ${webhookUrl} — Subscribe to "messages" field.`,
+        })
+        setConfiguring(null)
+        setFormData({})
+        setSaving(false)
+        return
+      }
 
       // Auto-register webhook for Telegram
       if (channelType === "telegram" && enabled && formData.botToken) {
