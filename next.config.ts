@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     "socket.io",
     "bcryptjs",
     "pg",
+    "openai",
   ],
 }
 
