@@ -110,12 +110,11 @@ async function webSearch(args) {
     // Extract search result snippets from DuckDuckGo lite HTML
     const results = []
 
-    // DuckDuckGo lite uses <a class="result-link"> for links and
-    // <td class="result-snippet"> for snippets
+    // DuckDuckGo lite uses single quotes: class='result-link' and class='result-snippet'
     const snippetRegex =
-      /<td\s+class="result-snippet">([\s\S]*?)<\/td>/gi
+      /<td\s+class=['"]result-snippet['"]>([\s\S]*?)<\/td>/gi
     const linkRegex =
-      /<a\s+[^>]*class="result-link"[^>]*>([\s\S]*?)<\/a>/gi
+      /<a\s+[^>]*class=['"]result-link['"][^>]*>([\s\S]*?)<\/a>/gi
 
     const snippets = []
     const titles = []
