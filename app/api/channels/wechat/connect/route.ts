@@ -14,15 +14,23 @@ export async function POST() {
   const connectionMode = "personal"
 
   // Upsert WeChat channel as enabled with Wechaty mode
-  const existing = await pool.query(
+  let existing = await pool.query(
     'SELECT id FROM "UserChannel" WHERE "userId" = $1 AND "channelType" = $2 AND "connectionMode" = $3',
     [userId, "wechat", connectionMode]
   )
 
+  // Fallback: find any existing wechat row (handles old schema)
+  if (existing.rows.length === 0) {
+    existing = await pool.query(
+      'SELECT id FROM "UserChannel" WHERE "userId" = $1 AND "channelType" = $2',
+      [userId, "wechat"]
+    )
+  }
+
   if (existing.rows.length > 0) {
     await pool.query(
-      'UPDATE "UserChannel" SET config = $1, enabled = true, status = $2, "updatedAt" = $3 WHERE id = $4',
-      [JSON.stringify({ mode: "wechaty" }), "connecting", now, existing.rows[0].id]
+      'UPDATE "UserChannel" SET config = $1, enabled = true, status = $2, "connectionMode" = $3, "updatedAt" = $4 WHERE id = $5',
+      [JSON.stringify({ mode: "wechaty" }), "connecting", connectionMode, now, existing.rows[0].id]
     )
   } else {
     const id = cuid()

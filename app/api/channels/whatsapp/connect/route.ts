@@ -22,15 +22,24 @@ export async function POST(req: Request) {
   }
 
   // Upsert WhatsApp channel as enabled with Baileys mode (no accessToken = Baileys)
-  const existing = await pool.query(
+  // First check with connectionMode, then fallback to any existing whatsapp row
+  let existing = await pool.query(
     'SELECT id FROM "UserChannel" WHERE "userId" = $1 AND "channelType" = $2 AND "connectionMode" = $3',
     [userId, "whatsapp", connectionMode]
   )
 
+  // Fallback: find any existing whatsapp row (handles old schema without connectionMode)
+  if (existing.rows.length === 0) {
+    existing = await pool.query(
+      'SELECT id FROM "UserChannel" WHERE "userId" = $1 AND "channelType" = $2',
+      [userId, "whatsapp"]
+    )
+  }
+
   if (existing.rows.length > 0) {
     await pool.query(
-      'UPDATE "UserChannel" SET config = $1, enabled = true, status = $2, "updatedAt" = $3 WHERE id = $4',
-      [JSON.stringify({ mode: "baileys" }), "connecting", now, existing.rows[0].id]
+      'UPDATE "UserChannel" SET config = $1, enabled = true, status = $2, "connectionMode" = $3, "updatedAt" = $4 WHERE id = $5',
+      [JSON.stringify({ mode: "baileys" }), "connecting", connectionMode, now, existing.rows[0].id]
     )
   } else {
     const id = cuid()
