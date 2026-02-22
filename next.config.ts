@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "pg",
     "openai",
     "@google/genai",
+    "@anthropic-ai/sdk",
     "@whiskeysockets/baileys",
     "qrcode",
     "pino",

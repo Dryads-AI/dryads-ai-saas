@@ -11,9 +11,11 @@ export default function SettingsPage() {
   const { data: session } = useSession()
   const [openaiKey, setOpenaiKey] = useState("")
   const [geminiKey, setGeminiKey] = useState("")
+  const [anthropicKey, setAnthropicKey] = useState("")
   const [savedKeys, setSavedKeys] = useState<Record<string, boolean>>({})
   const [savingOpenai, setSavingOpenai] = useState(false)
   const [savingGemini, setSavingGemini] = useState(false)
+  const [savingAnthropic, setSavingAnthropic] = useState(false)
 
   useEffect(() => {
     fetch("/api/settings/apikeys")
@@ -22,6 +24,7 @@ export default function SettingsPage() {
         setSavedKeys(data || {})
         if (data?.openai) setOpenaiKey("sk-••••••••••••••••")
         if (data?.gemini) setGeminiKey("AI••••••••••••••••")
+        if (data?.anthropic) setAnthropicKey("sk-ant-••••••••••••••••")
       })
       .catch(() => {})
   }, [])
@@ -38,6 +41,7 @@ export default function SettingsPage() {
       setSavedKeys((prev) => ({ ...prev, [provider]: true }))
       if (provider === "openai") setOpenaiKey("sk-••••••••••••••••")
       if (provider === "gemini") setGeminiKey("AI••••••••••••••••")
+      if (provider === "anthropic") setAnthropicKey("sk-ant-••••••••••••••••")
     } finally {
       setSaving(false)
     }
@@ -70,7 +74,7 @@ export default function SettingsPage() {
       <Card>
         <CardTitle className="flex items-center gap-2">
           API Keys
-          {(savedKeys.openai || savedKeys.gemini) && <Badge variant="success">Configured</Badge>}
+          {(savedKeys.openai || savedKeys.gemini || savedKeys.anthropic) && <Badge variant="success">Configured</Badge>}
         </CardTitle>
         <CardDescription>
           Add your AI provider API keys. Keys are stored securely.
@@ -143,6 +147,40 @@ export default function SettingsPage() {
               </a>
             </p>
           </div>
+
+          {/* Anthropic (Claude) */}
+          <div>
+            <label className="mb-1 flex items-center gap-2 text-xs font-medium text-zinc-400">
+              Anthropic (Claude) API Key
+              {savedKeys.anthropic && <Badge variant="success" className="text-[10px]">Saved</Badge>}
+            </label>
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                value={anthropicKey}
+                onChange={(e) => {
+                  setAnthropicKey(e.target.value)
+                  if (!e.target.value.includes("••")) setSavedKeys((p) => ({ ...p, anthropic: false }))
+                }}
+                placeholder="sk-ant-..."
+                onFocus={() => {
+                  if (anthropicKey.includes("••")) setAnthropicKey("")
+                }}
+              />
+              <Button
+                onClick={() => saveApiKey("anthropic", anthropicKey, setSavingAnthropic)}
+                disabled={savingAnthropic || !anthropicKey || anthropicKey.includes("••")}
+              >
+                {savingAnthropic ? "Saving..." : "Save"}
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-zinc-500">
+              Get your key from{" "}
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-teal-500 hover:underline">
+                console.anthropic.com
+              </a>
+            </p>
+          </div>
         </div>
       </Card>
 
@@ -160,6 +198,11 @@ export default function SettingsPage() {
             <optgroup label="Google Gemini">
               <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
               <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
+            </optgroup>
+            <optgroup label="Anthropic (Claude)">
+              <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6 (Recommended)</option>
+              <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
+              <option value="anthropic:claude-opus-4-6">Claude Opus 4.6 (Most Capable)</option>
             </optgroup>
           </select>
           <p className="text-xs text-zinc-500">

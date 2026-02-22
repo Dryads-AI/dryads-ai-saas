@@ -2,9 +2,11 @@
  * DMMS AI — Multi-Channel Gateway v4.0
  * 3-Layer Architecture: Connector + Middleware + AI
  *
- * Pipeline: Connector → Session → History → AI Router → Store → Reply
+ * Pipeline (11 steps):
+ *   metering → session → history → envelope → enrichment →
+ *   persona → news → aiRouter → formatter → footer → store
  *
- * This file is a thin orchestrator (~80 lines) that wires together:
+ * This file is a thin orchestrator that wires together:
  *   - lib/middleware/  — Composable pipeline steps
  *   - lib/ai/         — AI providers (OpenAI, Gemini)
  *   - lib/connectors/ — Platform connectors (Telegram, WhatsApp, Discord, Slack)
@@ -12,9 +14,16 @@
 
 import pg from "pg"
 import { createPipeline } from "./lib/middleware/pipeline.mjs"
+import { meteringMiddleware } from "./lib/middleware/metering.mjs"
 import { sessionMiddleware } from "./lib/middleware/session.mjs"
 import { historyMiddleware } from "./lib/middleware/history.mjs"
+import { envelopeMiddleware } from "./lib/middleware/envelope.mjs"
+import { enrichmentMiddleware } from "./lib/middleware/enrichment.mjs"
+import { personaMiddleware } from "./lib/middleware/persona.mjs"
+import { newsMiddleware } from "./lib/middleware/news.mjs"
 import { aiRouterMiddleware } from "./lib/middleware/ai-router.mjs"
+import { formatterMiddleware } from "./lib/middleware/formatter.mjs"
+import { footerMiddleware } from "./lib/middleware/footer.mjs"
 import { storeMiddleware } from "./lib/middleware/store.mjs"
 import { ConnectorRegistry } from "./lib/connectors/registry.mjs"
 import { TOOLS } from "./lib/ai/tools.mjs"
@@ -66,10 +75,17 @@ async function ensureTables() {
 // ── Build Middleware Pipeline ────────────────────────────────────────
 
 const pipeline = createPipeline([
-  sessionMiddleware(pool),
-  historyMiddleware(pool),
-  aiRouterMiddleware(pool),
-  storeMiddleware(pool),
+  meteringMiddleware(pool),       //  1. Rate limiting (short-circuits if over limit)
+  sessionMiddleware(pool),        //  2. Look up / create conversation
+  historyMiddleware(pool),        //  3. Load last 10 messages
+  envelopeMiddleware(),           //  4. Wrap message with metadata
+  enrichmentMiddleware(),         //  5. Fetch URL content if links present
+  personaMiddleware(),            //  6. Build rich system prompt
+  newsMiddleware(),               //  7. Smart news pre-fetch
+  aiRouterMiddleware(pool),       //  8. Call AI provider
+  formatterMiddleware(),          //  9. Platform-specific formatting
+  footerMiddleware(),             // 10. Model prefix + footer (defaults: off)
+  storeMiddleware(pool),          // 11. Save to database
 ])
 
 // ── Main ────────────────────────────────────────────────────────────
@@ -77,11 +93,12 @@ const pipeline = createPipeline([
 async function main() {
   console.log("╔══════════════════════════════════════════════════════╗")
   console.log("║  DMMS AI — Multi-Channel Gateway v4.0               ║")
-  console.log("║  3-Layer Architecture: Connector + Middleware + AI   ║")
+  console.log("║  11-Step Middleware Pipeline                         ║")
   console.log("║  Every Messenger is AI Now.                          ║")
   console.log("╚══════════════════════════════════════════════════════╝")
   console.log(`[Gateway] Tools: ${TOOLS.map((t) => t.definition.function.name).join(", ")}`)
-  console.log(`[Gateway] AI Providers: OpenAI, Gemini`)
+  console.log(`[Gateway] AI Providers: OpenAI, Gemini, Anthropic (Claude)`)
+  console.log(`[Gateway] Pipeline: metering → session → history → envelope → enrichment → persona → news → aiRouter → formatter → footer → store`)
 
   await ensureTables()
 

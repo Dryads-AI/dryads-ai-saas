@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { pool, cuid } from "@/lib/db"
 
-const VALID_PROVIDERS = ["openai", "gemini"]
+const VALID_PROVIDERS = ["openai", "gemini", "anthropic"]
 
 export async function GET() {
   const session = await getServerSession(authOptions)

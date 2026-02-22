@@ -28,6 +28,7 @@ export async function POST(req: Request) {
   const envKeyMap: Record<string, string> = {
     openai: "OPENAI_API_KEY",
     gemini: "GEMINI_API_KEY",
+    anthropic: "ANTHROPIC_API_KEY",
   }
   const apiKey = apiKeyRes.rows[0]?.apiKey || process.env[envKeyMap[provider] || "OPENAI_API_KEY"]
   if (!apiKey) {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
 
   // Get or create conversation
   let convoId = conversationId
-  let aiModel = model || (provider === "gemini" ? "gemini-2.5-flash" : "gpt-4o")
+  let aiModel = model || (provider === "gemini" ? "gemini-2.5-flash" : provider === "anthropic" ? "claude-sonnet-4-6" : "gpt-4o")
 
   if (convoId) {
     const existing = await pool.query(
@@ -78,12 +79,19 @@ export async function POST(req: Request) {
     ...messagesRes.rows.map((m) => ({ role: m.role as ProviderMessage["role"], content: m.content })),
   ]
 
-  // Create provider — use existing OpenAI streaming for OpenAI, simple response for Gemini
-  if (provider === "gemini") {
-    // Gemini: non-streaming response (the AI layer handles tool loops)
+  // Create provider — use existing OpenAI streaming for OpenAI, simple response for Gemini/Anthropic
+  if (provider === "gemini" || provider === "anthropic") {
+    // Gemini/Anthropic: non-streaming response (the AI layer handles tool loops)
     try {
-      const { callGemini } = await import("@/lib/ai/gemini.mjs")
-      const result = await callGemini(apiKey, context, aiModel)
+      let result: { reply: string; toolsUsed: string[] }
+
+      if (provider === "anthropic") {
+        const { callAnthropic } = await import("@/lib/ai/anthropic.mjs")
+        result = await callAnthropic(apiKey, context, aiModel)
+      } else {
+        const { callGemini } = await import("@/lib/ai/gemini.mjs")
+        result = await callGemini(apiKey, context, aiModel)
+      }
 
       const fullResponse = result.reply
 
@@ -126,8 +134,9 @@ export async function POST(req: Request) {
         },
       })
     } catch (err) {
+      const label = provider === "anthropic" ? "Anthropic" : "Gemini"
       return NextResponse.json(
-        { error: err instanceof Error ? err.message : "Gemini error" },
+        { error: err instanceof Error ? err.message : `${label} error` },
         { status: 500 }
       )
     }
