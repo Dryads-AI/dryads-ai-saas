@@ -131,8 +131,11 @@ async function sessionMiddleware(ctx: WaContext) {
     gemini: "GEMINI_API_KEY",
     anthropic: "ANTHROPIC_API_KEY",
   }
-  ctx.apiKey = keyRes.rows[0]?.apiKey || process.env[envKeyMap[activeProvider] || "OPENAI_API_KEY"]
-  if (!ctx.apiKey) throw new Error(`No ${activeProvider} API key configured`)
+  const rawKey = keyRes.rows[0]?.apiKey || process.env[envKeyMap[activeProvider] || "OPENAI_API_KEY"]
+  if (!rawKey) throw new Error(`No ${activeProvider} API key configured`)
+  // Strip invisible Unicode chars (e.g. U+2028 LINE SEPARATOR from copy-paste)
+  // eslint-disable-next-line no-control-regex
+  ctx.apiKey = rawKey.replace(/[^\x20-\x7E]/g, "").trim()
 
   ctx.aiProvider = activeProvider
   ctx.aiModel = activeModel

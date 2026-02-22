@@ -28,7 +28,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { provider, apiKey } = await req.json()
+  const body = await req.json()
+  const provider = body.provider
+  // Strip invisible Unicode characters from API keys (e.g. U+2028 from copy-paste)
+  // eslint-disable-next-line no-control-regex
+  const apiKey = body.apiKey ? body.apiKey.replace(/[^\x20-\x7E]/g, "").trim() : ""
   if (!provider || !apiKey) {
     return NextResponse.json({ error: "provider and apiKey required" }, { status: 400 })
   }
