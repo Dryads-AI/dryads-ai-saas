@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { pool } from "@/lib/db"
+import { whatsappQrManager } from "@/lib/whatsapp/qr-manager"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -11,7 +12,16 @@ export async function GET() {
 
   const userId = (session.user as { id: string }).id
 
-  // Check if connected first
+  // Check in-memory QR manager first (instant, no DB round-trip)
+  const mem = whatsappQrManager.getStatus(userId)
+  if (mem) {
+    if (mem.status === "qr" && mem.qr) return NextResponse.json({ status: "qr", qr: mem.qr })
+    if (mem.status === "connected") return NextResponse.json({ status: "connected" })
+    if (mem.status === "error") return NextResponse.json({ status: "error", error: mem.error })
+    // "connecting" — fall through to DB check in case bot.mjs wrote something
+  }
+
+  // DB fallback — check if connected first
   const connectedRes = await pool.query(
     `SELECT event_type, payload, created_at FROM channel_events
      WHERE user_id = $1 AND channel_type = 'whatsapp'

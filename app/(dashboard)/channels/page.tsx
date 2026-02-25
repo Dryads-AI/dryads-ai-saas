@@ -267,6 +267,7 @@ interface SavedChannel {
   config: Record<string, string>
   enabled: boolean
   status: string
+  autoReply?: boolean
 }
 
 // ── WhatsApp QR Component ────────────────────────────────────────────
@@ -560,6 +561,26 @@ export default function ChannelsPage() {
     }
   }
 
+  const toggleAutoReply = async (channelType: string, mode: string, currentValue: boolean) => {
+    const newValue = !currentValue
+    try {
+      await fetch(`/api/channels/${channelType}/auto-reply`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: newValue, connectionMode: mode }),
+      })
+      setSavedChannels((prev) =>
+        prev.map((c) =>
+          c.channelType === channelType && (c.connectionMode || "business") === mode
+            ? { ...c, autoReply: newValue }
+            : c
+        )
+      )
+    } catch {
+      // ignore
+    }
+  }
+
   const getSavedChannel = (type: string, mode?: string) =>
     savedChannels.find((c) => c.channelType === type && (c.connectionMode || "business") === (mode || "business"))
 
@@ -669,6 +690,25 @@ export default function ChannelsPage() {
                           />
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Auto-Reply Toggle */}
+                  {saved?.enabled && !isConfiguring && (
+                    <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-card/50 px-3 py-2">
+                      <span className="text-xs text-text-secondary">AI Auto-Reply</span>
+                      <button
+                        onClick={() => toggleAutoReply(ch.type, mode, saved.autoReply !== false)}
+                        className={`relative h-5 w-9 rounded-full transition-colors ${
+                          saved.autoReply !== false ? "bg-teal-500" : "bg-zinc-600"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                            saved.autoReply !== false ? "translate-x-4" : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
                     </div>
                   )}
 

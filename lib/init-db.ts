@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS "UserChannel" (
   config TEXT DEFAULT '{}',
   enabled BOOLEAN DEFAULT false,
   status TEXT DEFAULT 'disconnected',
+  "autoReply" BOOLEAN DEFAULT true,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE("userId", "channelType", "connectionMode")
@@ -60,6 +61,9 @@ CREATE TABLE IF NOT EXISTS "Message" (
   attachments JSONB,
   "toolCalls" JSONB,
   "tokenCount" INTEGER,
+  "channelType" TEXT,
+  "channelPeer" TEXT,
+  direction TEXT DEFAULT 'inbound',
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -81,6 +85,17 @@ CREATE TABLE IF NOT EXISTS channel_events (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_channel_events_user ON channel_events(user_id, channel_type, event_type);
+
+CREATE TABLE IF NOT EXISTS "Contact" (
+  id TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+  "channelType" TEXT NOT NULL,
+  "peerId" TEXT NOT NULL,
+  "displayName" TEXT,
+  "lastMessageAt" TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE("userId", "channelType", "peerId")
+);
+CREATE INDEX IF NOT EXISTS idx_contact_user ON "Contact"("userId");
 
 CREATE INDEX IF NOT EXISTS idx_conversation_user ON "Conversation"("userId");
 CREATE INDEX IF NOT EXISTS idx_message_conversation ON "Message"("conversationId");
@@ -104,6 +119,26 @@ ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "aiProvider" TEXT DEFAULT 'o
 -- Migration: Add default AI model preference to User
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "defaultAiProvider" TEXT DEFAULT 'openai';
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "defaultAiModel" TEXT DEFAULT 'gpt-4o';
+
+-- Migration: Add autoReply to UserChannel
+ALTER TABLE "UserChannel" ADD COLUMN IF NOT EXISTS "autoReply" BOOLEAN DEFAULT true;
+
+-- Migration: Add channelType, channelPeer, direction to Message
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "channelType" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "channelPeer" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS direction TEXT DEFAULT 'inbound';
+
+-- Migration: Create Contact table
+CREATE TABLE IF NOT EXISTS "Contact" (
+  id TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+  "channelType" TEXT NOT NULL,
+  "peerId" TEXT NOT NULL,
+  "displayName" TEXT,
+  "lastMessageAt" TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE("userId", "channelType", "peerId")
+);
+CREATE INDEX IF NOT EXISTS idx_contact_user ON "Contact"("userId");
 `
 
 async function initDb() {

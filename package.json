@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cp bot.mjs .next/standalone/bot.mjs && mkdir -p .next/standalone/lib && cp -r lib/ai lib/middleware lib/connectors .next/standalone/lib/ && cp lib/baileys-auth-pg.mjs .next/standalone/lib/",
+    "build": "next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cp bot.mjs .next/standalone/bot.mjs && mkdir -p .next/standalone/lib && cp -r lib/ai lib/middleware lib/connectors lib/gateway .next/standalone/lib/ && cp lib/baileys-auth-pg.mjs .next/standalone/lib/",
     "start": "node bot.mjs & node .next/standalone/server.js",
     "lint": "eslint",
     "db:init": "npx tsx lib/init-db.ts"

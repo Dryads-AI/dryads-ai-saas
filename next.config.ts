@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     "grammy",
     "@slack/bolt",
     "socket.io",
+    "socket.io-client",
     "bcryptjs",
     "pg",
     "openai",

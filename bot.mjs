@@ -27,6 +27,7 @@ import { footerMiddleware } from "./lib/middleware/footer.mjs"
 import { storeMiddleware } from "./lib/middleware/store.mjs"
 import { ConnectorRegistry } from "./lib/connectors/registry.mjs"
 import { TOOLS } from "./lib/ai/tools.mjs"
+import { createGatewayServer } from "./lib/gateway/socket-server.mjs"
 
 const { Pool } = pg
 
@@ -70,6 +71,23 @@ async function ensureTables() {
         UNIQUE("userId", "channelType", "connectionMode");
     EXCEPTION WHEN duplicate_table THEN NULL;
     END $$;
+
+    -- Migration: Unified Inbox support
+    ALTER TABLE "UserChannel" ADD COLUMN IF NOT EXISTS "autoReply" BOOLEAN DEFAULT true;
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "channelType" TEXT;
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "channelPeer" TEXT;
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS direction TEXT DEFAULT 'inbound';
+
+    CREATE TABLE IF NOT EXISTS "Contact" (
+      id TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+      "channelType" TEXT NOT NULL,
+      "peerId" TEXT NOT NULL,
+      "displayName" TEXT,
+      "lastMessageAt" TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE("userId", "channelType", "peerId")
+    );
+    CREATE INDEX IF NOT EXISTS idx_contact_user ON "Contact"("userId");
   `)
   console.log("[Gateway] Database tables ready.")
 }
@@ -110,6 +128,14 @@ async function main() {
   console.log("[Gateway] Starting connectors from DB...")
   await registry.syncFromDB()
 
+  // Start Gateway Socket.IO server for IPC with Next.js
+  const gatewayIO = createGatewayServer(registry, pipeline, pool)
+
+  // Register incoming-message listener on all connectors so gateway can relay to Next.js
+  registry.setOnIncomingCallback((event) => {
+    gatewayIO.emit("gateway:incoming", event)
+  })
+
   // Start polling for new channel activations
   registry.pollForChanges(2000)
 
@@ -118,6 +144,7 @@ async function main() {
   // Graceful shutdown
   const shutdown = async (signal) => {
     console.log(`\n[Gateway] ${signal} received, shutting down...`)
+    gatewayIO.close()
     await registry.stopAll()
     await pool.end()
     process.exit(0)

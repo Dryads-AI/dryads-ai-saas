@@ -3,11 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, MessageCircle, Zap, Archive, Settings } from "lucide-react"
+import { LayoutDashboard, MessageCircle, Inbox, Zap, Archive, Settings } from "lucide-react"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/channels", label: "Channels", icon: Zap },
   { href: "/conversations", label: "Conversations", icon: Archive },
   { href: "/settings", label: "Settings", icon: Settings },

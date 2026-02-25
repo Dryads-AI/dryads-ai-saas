@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { pool, cuid } from "@/lib/db"
+import { whatsappQrManager } from "@/lib/whatsapp/qr-manager"
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -21,8 +22,9 @@ export async function POST(req: Request) {
     // No body is fine — default to personal
   }
 
-  // Upsert WhatsApp channel as enabled with Baileys mode (no accessToken = Baileys)
-  // First check with connectionMode, then fallback to any existing whatsapp row
+  // Upsert WhatsApp channel with enabled=false during QR phase.
+  // The in-process QR manager sets enabled=true after successful scan.
+  // This prevents bot.mjs from starting a competing Baileys connector.
   let existing = await pool.query(
     'SELECT id FROM "UserChannel" WHERE "userId" = $1 AND "channelType" = $2 AND "connectionMode" = $3',
     [userId, "whatsapp", connectionMode]
@@ -38,14 +40,14 @@ export async function POST(req: Request) {
 
   if (existing.rows.length > 0) {
     await pool.query(
-      'UPDATE "UserChannel" SET config = $1, enabled = true, status = $2, "connectionMode" = $3, "updatedAt" = $4 WHERE id = $5',
+      'UPDATE "UserChannel" SET config = $1, enabled = false, status = $2, "connectionMode" = $3, "updatedAt" = $4 WHERE id = $5',
       [JSON.stringify({ mode: "baileys" }), "connecting", connectionMode, now, existing.rows[0].id]
     )
   } else {
     const id = cuid()
     await pool.query(
       'INSERT INTO "UserChannel" (id, "userId", "channelType", "connectionMode", config, enabled, status, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-      [id, userId, "whatsapp", connectionMode, JSON.stringify({ mode: "baileys" }), true, "connecting", now, now]
+      [id, userId, "whatsapp", connectionMode, JSON.stringify({ mode: "baileys" }), false, "connecting", now, now]
     )
   }
 
@@ -62,6 +64,11 @@ export async function POST(req: Request) {
     [cuid(), userId, "whatsapp", "connecting", null]
   )
 
+  // Start in-process Baileys for QR generation (fire-and-forget)
+  whatsappQrManager.startLogin(userId).catch((err) => {
+    console.error("[WA QR] Failed to start:", err.message)
+  })
+
   return NextResponse.json({ ok: true, status: "connecting" })
 }
 
@@ -72,6 +79,9 @@ export async function DELETE() {
   }
 
   const userId = (session.user as { id: string }).id
+
+  // Cleanup any in-process QR session
+  whatsappQrManager.cleanup(userId)
 
   // Clear Baileys auth state
   await pool.query("DELETE FROM baileys_auth WHERE user_id = $1", [userId])
