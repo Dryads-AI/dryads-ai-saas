@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     "@whiskeysockets/baileys",
     "qrcode",
     "pino",
+    "socks-proxy-agent",
     "wechaty",
     "wechaty-puppet-wechat4u",
   ],

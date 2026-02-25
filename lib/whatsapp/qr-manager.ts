@@ -8,8 +8,16 @@
 
 import { makeWASocket, DisconnectReason } from "@whiskeysockets/baileys"
 import { Boom } from "@hapi/boom"
+import { SocksProxyAgent } from "socks-proxy-agent"
 import { usePgAuthState } from "../baileys-auth-pg.mjs"
 import { pool, cuid } from "../db"
+
+function getProxyAgent() {
+  const proxy = process.env.WA_PROXY_URL
+  if (!proxy) return undefined
+  console.log(`[WA QR] Using proxy: ${proxy.replace(/\/\/.*@/, "//***@")}`)
+  return new SocksProxyAgent(proxy)
+}
 
 interface LoginSession {
   sock: ReturnType<typeof makeWASocket> | null
@@ -53,12 +61,14 @@ class WhatsAppQrManager {
         userId
       )
 
+      const agent = getProxyAgent()
       const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         browser: ["DMMS AI", "Chrome", "1.0.0"],
         connectTimeoutMs: 60000,
         syncFullHistory: false,
+        ...(agent ? { agent, fetchAgent: agent } : {}),
       })
 
       session.sock = sock
