@@ -2,8 +2,8 @@
  * In-process Baileys QR Manager
  *
  * Runs Baileys directly in the Next.js process for QR code generation.
- * After successful scan, bot.mjs picks up established credentials
- * on its next DB poll for ongoing message handling.
+ * After successful scan + reconnect, marks the channel as connected
+ * so bot.mjs picks up established credentials on its next DB poll.
  */
 
 import { makeWASocket, DisconnectReason, fetchLatestBaileysVersion, Browsers } from "@whiskeysockets/baileys"
@@ -26,6 +26,7 @@ interface LoginSession {
   error: string | null
   startedAt: number
   ttlTimer: ReturnType<typeof setTimeout> | null
+  version: [number, number, number] | undefined
 }
 
 const TTL_MS = 3 * 60 * 1000 // 3 minutes
@@ -46,6 +47,7 @@ class WhatsAppQrManager {
       error: null,
       startedAt: Date.now(),
       ttlTimer: null,
+      version: undefined,
     }
     this.sessions.set(userId, session)
 
@@ -55,21 +57,36 @@ class WhatsAppQrManager {
       this.cleanup(userId)
     }, TTL_MS)
 
+    // Fetch latest WhatsApp Web version once for this session
     try {
+      const v = await fetchLatestBaileysVersion()
+      session.version = v.version
+      console.log(`[WA QR] Using WhatsApp version: ${session.version.join(".")}`)
+    } catch {
+      console.warn("[WA QR] Could not fetch latest version, using default")
+    }
+
+    await this._connect(userId)
+  }
+
+  private async _connect(userId: string): Promise<void> {
+    const session = this.sessions.get(userId)
+    if (!session) return
+
+    try {
+      // Close previous socket if any
+      if (session.sock) {
+        try {
+          ;(session.sock.ev as unknown as { removeAllListeners(): void }).removeAllListeners()
+          session.sock.end(undefined)
+        } catch {}
+        session.sock = null
+      }
+
       const { state, saveCreds } = await usePgAuthState(
         process.env.DATABASE_URL!,
         userId
       )
-
-      // Fetch latest WhatsApp Web version to avoid 405 rejection
-      let version: [number, number, number] | undefined
-      try {
-        const v = await fetchLatestBaileysVersion()
-        version = v.version
-        console.log(`[WA QR] Using WhatsApp version: ${version.join(".")}`)
-      } catch (err) {
-        console.warn("[WA QR] Could not fetch latest version, using default")
-      }
 
       const agent = getProxyAgent()
       const sock = makeWASocket({
@@ -78,7 +95,7 @@ class WhatsAppQrManager {
         browser: Browsers.macOS("Desktop"),
         connectTimeoutMs: 60000,
         syncFullHistory: false,
-        ...(version ? { version } : {}),
+        ...(session.version ? { version: session.version } : {}),
         ...(agent ? { agent, fetchAgent: agent } : {}),
       })
 
@@ -125,14 +142,21 @@ class WhatsAppQrManager {
 
           console.log(`[WA QR] Connection closed for user ${userId.slice(0, 8)} (code: ${statusCode})`)
 
-          if (statusCode === DisconnectReason.loggedOut) {
+          if (statusCode === DisconnectReason.restartRequired) {
+            // 515 = restart required — normal after QR pairing.
+            // Reconnect with saved credentials to complete the login.
+            console.log(`[WA QR] Restart required — reconnecting for user ${userId.slice(0, 8)}...`)
+            session.status = "connecting"
+            // Small delay before reconnecting
+            setTimeout(() => this._connect(userId), 1500)
+          } else if (statusCode === DisconnectReason.loggedOut) {
             session.status = "error"
             session.error = "Logged out — please try again"
             await pool.query(
               "INSERT INTO channel_events (id, user_id, channel_type, event_type, payload, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
               [cuid(), userId, "whatsapp", "logged_out", null]
             ).catch(() => {})
-          } else if (statusCode !== DisconnectReason.restartRequired) {
+          } else {
             session.status = "error"
             session.error = `Connection failed (code: ${statusCode})`
             await pool.query(
