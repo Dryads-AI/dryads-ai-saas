@@ -6,7 +6,7 @@
  * on its next DB poll for ongoing message handling.
  */
 
-import { makeWASocket, DisconnectReason } from "@whiskeysockets/baileys"
+import { makeWASocket, DisconnectReason, fetchLatestBaileysVersion, Browsers } from "@whiskeysockets/baileys"
 import { Boom } from "@hapi/boom"
 import { SocksProxyAgent } from "socks-proxy-agent"
 import { usePgAuthState } from "../baileys-auth-pg.mjs"
@@ -61,13 +61,24 @@ class WhatsAppQrManager {
         userId
       )
 
+      // Fetch latest WhatsApp Web version to avoid 405 rejection
+      let version: [number, number, number] | undefined
+      try {
+        const v = await fetchLatestBaileysVersion()
+        version = v.version
+        console.log(`[WA QR] Using WhatsApp version: ${version.join(".")}`)
+      } catch (err) {
+        console.warn("[WA QR] Could not fetch latest version, using default")
+      }
+
       const agent = getProxyAgent()
       const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
-        browser: ["DMMS AI", "Chrome", "1.0.0"],
+        browser: Browsers.macOS("Desktop"),
         connectTimeoutMs: 60000,
         syncFullHistory: false,
+        ...(version ? { version } : {}),
         ...(agent ? { agent, fetchAgent: agent } : {}),
       })
 
