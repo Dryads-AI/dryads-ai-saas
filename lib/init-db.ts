@@ -97,6 +97,33 @@ CREATE TABLE IF NOT EXISTS "Contact" (
 );
 CREATE INDEX IF NOT EXISTS idx_contact_user ON "Contact"("userId");
 
+CREATE TABLE IF NOT EXISTS "user_memory" (
+  id TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL,
+  fact TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  source_channel TEXT,
+  source_conversation_id TEXT,
+  confidence REAL DEFAULT 1.0,
+  access_count INTEGER DEFAULT 0,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_memory_unique ON "user_memory"("userId", fact);
+CREATE INDEX IF NOT EXISTS idx_user_memory_user ON "user_memory"("userId");
+
+CREATE TABLE IF NOT EXISTS "user_reminder" (
+  id TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL,
+  reminder_text TEXT NOT NULL,
+  remind_at TIMESTAMPTZ NOT NULL,
+  channel_type TEXT,
+  channel_peer TEXT,
+  delivered BOOLEAN DEFAULT false,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_user_reminder_pending ON "user_reminder"("userId", delivered, remind_at);
+
 CREATE INDEX IF NOT EXISTS idx_conversation_user ON "Conversation"("userId");
 CREATE INDEX IF NOT EXISTS idx_message_conversation ON "Message"("conversationId");
 CREATE INDEX IF NOT EXISTS idx_userchannel_user ON "UserChannel"("userId");
@@ -139,6 +166,41 @@ CREATE TABLE IF NOT EXISTS "Contact" (
   UNIQUE("userId", "channelType", "peerId")
 );
 CREATE INDEX IF NOT EXISTS idx_contact_user ON "Contact"("userId");
+
+-- Migration: Add AI metadata columns to Message
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "provider" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "model" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "intentClass" TEXT;
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "complexityClass" TEXT;
+
+-- Migration: user_memory table
+CREATE TABLE IF NOT EXISTS "user_memory" (
+  id TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL,
+  fact TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  source_channel TEXT,
+  source_conversation_id TEXT,
+  confidence REAL DEFAULT 1.0,
+  access_count INTEGER DEFAULT 0,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_memory_unique ON "user_memory"("userId", fact);
+CREATE INDEX IF NOT EXISTS idx_user_memory_user ON "user_memory"("userId");
+
+-- Migration: user_reminder table
+CREATE TABLE IF NOT EXISTS "user_reminder" (
+  id TEXT PRIMARY KEY,
+  "userId" TEXT NOT NULL,
+  reminder_text TEXT NOT NULL,
+  remind_at TIMESTAMPTZ NOT NULL,
+  channel_type TEXT,
+  channel_peer TEXT,
+  delivered BOOLEAN DEFAULT false,
+  "createdAt" TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_user_reminder_pending ON "user_reminder"("userId", delivered, remind_at);
 `
 
 async function initDb() {

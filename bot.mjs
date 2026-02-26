@@ -1,14 +1,16 @@
 /**
- * DMMS AI — Multi-Channel Gateway v4.0
+ * DMMS AI — Multi-Channel Gateway v5.0
  * 3-Layer Architecture: Connector + Middleware + AI
+ * 3-Engine Intelligent Pipeline: Intent Router + Memory + Agent Loop
  *
- * Pipeline (11 steps):
+ * Pipeline (13 steps):
  *   metering → session → history → envelope → enrichment →
- *   persona → news → aiRouter → formatter → footer → store
+ *   memory → persona → news → intentClassifier → aiRouter →
+ *   formatter → footer → store
  *
  * This file is a thin orchestrator that wires together:
  *   - lib/middleware/  — Composable pipeline steps
- *   - lib/ai/         — AI providers (OpenAI, Gemini)
+ *   - lib/ai/         — AI providers (OpenAI, Gemini, Anthropic)
  *   - lib/connectors/ — Platform connectors (Telegram, WhatsApp, Discord, Slack)
  */
 
@@ -19,14 +21,17 @@ import { sessionMiddleware } from "./lib/middleware/session.mjs"
 import { historyMiddleware } from "./lib/middleware/history.mjs"
 import { envelopeMiddleware } from "./lib/middleware/envelope.mjs"
 import { enrichmentMiddleware } from "./lib/middleware/enrichment.mjs"
+import { memoryMiddleware } from "./lib/middleware/memory.mjs"
 import { personaMiddleware } from "./lib/middleware/persona.mjs"
 import { newsMiddleware } from "./lib/middleware/news.mjs"
+import { intentClassifierMiddleware } from "./lib/middleware/intent-classifier.mjs"
 import { aiRouterMiddleware } from "./lib/middleware/ai-router.mjs"
 import { formatterMiddleware } from "./lib/middleware/formatter.mjs"
 import { footerMiddleware } from "./lib/middleware/footer.mjs"
 import { storeMiddleware } from "./lib/middleware/store.mjs"
 import { ConnectorRegistry } from "./lib/connectors/registry.mjs"
-import { TOOLS } from "./lib/ai/tools.mjs"
+import { toolRegistry } from "./lib/ai/tool-registry.mjs"
+import "./lib/ai/tools/index.mjs"
 import { createGatewayServer } from "./lib/gateway/socket-server.mjs"
 
 const { Pool } = pg
@@ -88,6 +93,41 @@ async function ensureTables() {
       UNIQUE("userId", "channelType", "peerId")
     );
     CREATE INDEX IF NOT EXISTS idx_contact_user ON "Contact"("userId");
+
+    -- Migration: AI metadata columns on Message
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "provider" TEXT;
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "model" TEXT;
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "intentClass" TEXT;
+    ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "complexityClass" TEXT;
+
+    -- Migration: user_memory table
+    CREATE TABLE IF NOT EXISTS "user_memory" (
+      id TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      fact TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      source_channel TEXT,
+      source_conversation_id TEXT,
+      confidence REAL DEFAULT 1.0,
+      access_count INTEGER DEFAULT 0,
+      "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_user_memory_unique ON "user_memory"("userId", fact);
+    CREATE INDEX IF NOT EXISTS idx_user_memory_user ON "user_memory"("userId");
+
+    -- Migration: user_reminder table
+    CREATE TABLE IF NOT EXISTS "user_reminder" (
+      id TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      reminder_text TEXT NOT NULL,
+      remind_at TIMESTAMPTZ NOT NULL,
+      channel_type TEXT,
+      channel_peer TEXT,
+      delivered BOOLEAN DEFAULT false,
+      "createdAt" TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_reminder_pending ON "user_reminder"("userId", delivered, remind_at);
   `)
   console.log("[Gateway] Database tables ready.")
 }
@@ -95,30 +135,34 @@ async function ensureTables() {
 // ── Build Middleware Pipeline ────────────────────────────────────────
 
 const pipeline = createPipeline([
-  meteringMiddleware(pool),       //  1. Rate limiting (short-circuits if over limit)
-  sessionMiddleware(pool),        //  2. Look up / create conversation
-  historyMiddleware(pool),        //  3. Load last 10 messages
-  envelopeMiddleware(),           //  4. Wrap message with metadata
-  enrichmentMiddleware(),         //  5. Fetch URL content if links present
-  personaMiddleware(),            //  6. Build rich system prompt
-  newsMiddleware(),               //  7. Smart news pre-fetch
-  aiRouterMiddleware(pool),       //  8. Call AI provider
-  formatterMiddleware(),          //  9. Platform-specific formatting
-  footerMiddleware(),             // 10. Model prefix + footer (defaults: off)
-  storeMiddleware(pool),          // 11. Save to database
+  meteringMiddleware(pool),          //  1. Rate limiting (short-circuits if over limit)
+  sessionMiddleware(pool),           //  2. Look up / create conversation
+  historyMiddleware(pool),           //  3. Load last 10 messages
+  envelopeMiddleware(),              //  4. Wrap message with metadata
+  enrichmentMiddleware(),            //  5. Fetch URL content if links present
+  memoryMiddleware(pool),            //  6. Load memories + extract post-AI
+  personaMiddleware(),               //  7. Build rich system prompt (now includes memories)
+  newsMiddleware(),                  //  8. Smart news pre-fetch
+  intentClassifierMiddleware(pool),  //  9. Classify intent + smart route
+  aiRouterMiddleware(pool),          // 10. Call AI provider
+  formatterMiddleware(),             // 11. Platform-specific formatting
+  footerMiddleware(),                // 12. Model prefix + footer (defaults: off)
+  storeMiddleware(pool),             // 13. Save to database (now with metadata)
 ])
 
 // ── Main ────────────────────────────────────────────────────────────
 
 async function main() {
   console.log("╔══════════════════════════════════════════════════════╗")
-  console.log("║  DMMS AI — Multi-Channel Gateway v4.0               ║")
-  console.log("║  11-Step Middleware Pipeline                         ║")
+  console.log("║  DMMS AI — Multi-Channel Gateway v5.0               ║")
+  console.log("║  13-Step Intelligent AI Pipeline                     ║")
+  console.log("║  3 Engines: Intent Router + Memory + Agent Loop      ║")
   console.log("║  Every Messenger is AI Now.                          ║")
   console.log("╚══════════════════════════════════════════════════════╝")
-  console.log(`[Gateway] Tools: ${TOOLS.map((t) => t.definition.function.name).join(", ")}`)
+  console.log(`[Gateway] Tools (${toolRegistry.getToolNames().length}): ${toolRegistry.getToolNames().join(", ")}`)
   console.log(`[Gateway] AI Providers: OpenAI, Gemini, Anthropic (Claude)`)
-  console.log(`[Gateway] Pipeline: metering → session → history → envelope → enrichment → persona → news → aiRouter → formatter → footer → store`)
+  console.log(`[Gateway] Engines: Intent Classifier + Smart Router | Long-term Memory | Enhanced Agent Loop`)
+  console.log(`[Gateway] Pipeline: metering → session → history → envelope → enrichment → memory → persona → news → intent → aiRouter → formatter → footer → store`)
 
   await ensureTables()
 
