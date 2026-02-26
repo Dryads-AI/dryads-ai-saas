@@ -183,7 +183,7 @@ function buildSystemPrompt(): string {
   })
   const timeStr = now.toLocaleTimeString("en-US", { hour12: true })
 
-  return `You are DMMS AI, an intelligent AI assistant on WhatsApp. Today is ${dateStr}, ${timeStr} UTC.
+  return `You are Dryads AI, an intelligent AI assistant on WhatsApp. Today is ${dateStr}, ${timeStr} UTC.
 
 CAPABILITIES:
 - You can search the internet for real-time information (weather, news, prices, events, etc.)
@@ -200,7 +200,7 @@ RULES:
 - Be conversational and natural, like a smart friend
 
 IDENTITY:
-- You are DMMS AI, NOT ChatGPT, NOT Google, NOT Siri
+- You are Dryads AI, NOT ChatGPT, NOT Google, NOT Siri
 - Your tagline: "Every Messenger is AI Now"`
 }
 
@@ -310,7 +310,7 @@ async function waSend(phoneNumberId: string, accessToken: string, to: string, te
 // ── Helpers ──────────────────────────────────────────────────────────
 
 async function getVerifyToken(): Promise<string> {
-  const fallback = process.env.WHATSAPP_VERIFY_TOKEN || "dmmsai_whatsapp_verify_2026"
+  const fallback = process.env.WHATSAPP_VERIFY_TOKEN || "dryadsai_whatsapp_verify_2026"
   try {
     const timeoutPromise = new Promise<null>((_, reject) =>
       setTimeout(() => reject(new Error("DB timeout")), 5000)

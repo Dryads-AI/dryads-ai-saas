@@ -21,8 +21,8 @@ export function Sidebar() {
     <aside className="sidebar-bg flex h-full w-64 flex-col border-r border-border-glass">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border-glass px-6">
-        <img src="/logo.png" alt="DMMS AI" className="h-8 w-8 rounded-lg object-contain" />
-        <span className="text-lg font-bold text-text-primary">DMMS AI</span>
+        <img src="/logo.png" alt="Dryads AI" className="h-8 w-8 rounded-lg object-contain" />
+        <span className="text-lg font-bold text-text-primary">Dryads AI</span>
       </div>
 
       {/* Navigation */}
@@ -50,7 +50,7 @@ export function Sidebar() {
 
       {/* Version */}
       <div className="border-t border-border-glass p-4">
-        <div className="text-xs text-text-muted">DMMS AI v1.0</div>
+        <div className="text-xs text-text-muted">Dryads AI v1.0</div>
       </div>
     </aside>
   )

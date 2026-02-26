@@ -12,8 +12,8 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="flex items-center justify-between border-b border-border-glass px-6 py-4 lg:px-12">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="DMMS AI" className="h-9 w-9 rounded-lg object-contain" />
-          <span className="text-lg font-bold text-text-primary">DMMS AI</span>
+          <img src="/logo.png" alt="Dryads AI" className="h-9 w-9 rounded-lg object-contain" />
+          <span className="text-lg font-bold text-text-primary">Dryads AI</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
@@ -162,7 +162,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border-glass px-6 py-8 lg:px-12">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <span className="text-sm text-text-muted">DMMS AI &copy; {new Date().getFullYear()}</span>
+          <span className="text-sm text-text-muted">Dryads AI &copy; {new Date().getFullYear()}</span>
           <span className="text-sm text-text-muted/60">Every Messenger is AI Now.</span>
         </div>
       </footer>

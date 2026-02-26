@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   )
 
   const context: ProviderMessage[] = [
-    { role: "system", content: "You are DMMS AI, a helpful AI assistant. You are knowledgeable, friendly, and concise." },
+    { role: "system", content: "You are Dryads AI, a helpful AI assistant. You are knowledgeable, friendly, and concise." },
     ...messagesRes.rows.map((m) => ({ role: m.role as ProviderMessage["role"], content: m.content })),
   ]
 

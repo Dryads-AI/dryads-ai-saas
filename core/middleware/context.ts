@@ -1,7 +1,7 @@
 import { ProviderMessage } from "../providers/base"
 import { pool } from "@/lib/db"
 
-const DEFAULT_SYSTEM_PROMPT = `You are DMMS AI, a helpful AI assistant. You are knowledgeable, friendly, and concise. You can help with a wide range of tasks including writing, coding, analysis, and general conversation.`
+const DEFAULT_SYSTEM_PROMPT = `You are Dryads AI, a helpful AI assistant. You are knowledgeable, friendly, and concise. You can help with a wide range of tasks including writing, coding, analysis, and general conversation.`
 
 const MAX_CONTEXT_MESSAGES = 50
 

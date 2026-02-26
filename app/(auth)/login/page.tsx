@@ -38,8 +38,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <img src="/logo.png" alt="DMMS AI" className="mx-auto h-12 w-12 rounded-xl object-contain" />
-          <h1 className="mt-4 text-2xl font-bold text-text-primary">Sign in to DMMS AI</h1>
+          <img src="/logo.png" alt="Dryads AI" className="mx-auto h-12 w-12 rounded-xl object-contain" />
+          <h1 className="mt-4 text-2xl font-bold text-text-primary">Sign in to Dryads AI</h1>
           <p className="mt-1 text-sm text-text-secondary">Every Messenger is AI Now.</p>
         </div>
 

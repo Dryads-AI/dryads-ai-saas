@@ -6,7 +6,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DMMS AI — Every Messenger is AI Now",
+  title: "Dryads AI — Every Messenger is AI Now",
   description: "Multi-messenger AI platform. Connect WhatsApp, Telegram, Discord, Slack, and more to a unified AI assistant.",
 }
 

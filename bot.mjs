@@ -1,5 +1,5 @@
 /**
- * DMMS AI — Multi-Channel Gateway v5.0
+ * Dryads AI — Multi-Channel Gateway v5.0
  * 3-Layer Architecture: Connector + Middleware + AI
  * 3-Engine Intelligent Pipeline: Intent Router + Memory + Agent Loop
  *
@@ -154,7 +154,7 @@ const pipeline = createPipeline([
 
 async function main() {
   console.log("╔══════════════════════════════════════════════════════╗")
-  console.log("║  DMMS AI — Multi-Channel Gateway v5.0               ║")
+  console.log("║  Dryads AI — Multi-Channel Gateway v5.0               ║")
   console.log("║  13-Step Intelligent AI Pipeline                     ║")
   console.log("║  3 Engines: Intent Router + Memory + Agent Loop      ║")
   console.log("║  Every Messenger is AI Now.                          ║")

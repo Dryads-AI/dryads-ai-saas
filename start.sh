@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "[start.sh] Starting DMMS AI..."
+echo "[start.sh] Starting Dryads AI..."
 
 # Start Telegram bot in background
 echo "[start.sh] Launching Telegram bot..."

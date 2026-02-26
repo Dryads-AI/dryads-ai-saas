@@ -58,9 +58,9 @@ export default function SignupPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <img src="/logo.png" alt="DMMS AI" className="mx-auto h-12 w-12 rounded-xl object-contain" />
+          <img src="/logo.png" alt="Dryads AI" className="mx-auto h-12 w-12 rounded-xl object-contain" />
           <h1 className="mt-4 text-2xl font-bold text-text-primary">Create your account</h1>
-          <p className="mt-1 text-sm text-text-secondary">Start using DMMS AI today</p>
+          <p className="mt-1 text-sm text-text-secondary">Start using Dryads AI today</p>
         </div>
 
         {/* Form */}

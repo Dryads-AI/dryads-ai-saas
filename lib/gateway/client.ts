@@ -1,5 +1,5 @@
 /**
- * DMMS AI — Gateway Client (Next.js side)
+ * Dryads AI — Gateway Client (Next.js side)
  * Connects to the bot.mjs Gateway Socket.IO server for IPC.
  */
 

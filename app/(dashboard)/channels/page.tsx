@@ -129,7 +129,7 @@ const CHANNELS: ChannelInfo[] = [
       { key: "server", label: "Server", placeholder: "irc.libera.chat" },
       { key: "port", label: "Port", placeholder: "6697" },
       { key: "channel", label: "Channel", placeholder: "#my-channel" },
-      { key: "nickname", label: "Nickname", placeholder: "dmms-ai" },
+      { key: "nickname", label: "Nickname", placeholder: "dryads-ai" },
     ],
     connectionMethod: "config",
   },
@@ -150,7 +150,7 @@ const CHANNELS: ChannelInfo[] = [
     configFields: [
       { key: "homeserver", label: "Homeserver URL", placeholder: "https://matrix.org" },
       { key: "accessToken", label: "Access Token", placeholder: "Matrix access token" },
-      { key: "userId", label: "Bot User ID", placeholder: "@dmms-ai:matrix.org" },
+      { key: "userId", label: "Bot User ID", placeholder: "@dryads-ai:matrix.org" },
     ],
     connectionMethod: "token",
   },
@@ -161,7 +161,7 @@ const CHANNELS: ChannelInfo[] = [
     configFields: [
       { key: "oauthToken", label: "OAuth Token", placeholder: "oauth:abc123..." },
       { key: "channel", label: "Channel Name", placeholder: "your_channel" },
-      { key: "botUsername", label: "Bot Username", placeholder: "dmms_ai_bot" },
+      { key: "botUsername", label: "Bot Username", placeholder: "dryads_ai_bot" },
     ],
     connectionMethod: "token",
   },
@@ -234,7 +234,7 @@ const CHANNELS: ChannelInfo[] = [
     description: "Connect via Viber Bot API",
     configFields: [
       { key: "botToken", label: "Auth Token", placeholder: "Viber bot auth token" },
-      { key: "botName", label: "Bot Name", placeholder: "DMMS AI" },
+      { key: "botName", label: "Bot Name", placeholder: "Dryads AI" },
     ],
     connectionMethod: "token",
   },

@@ -4,10 +4,10 @@ import { MessageRouter } from "./middleware/router"
 import { ChannelType } from "./channels/base"
 
 /**
- * DMMS AI Core Engine
+ * Dryads AI Core Engine
  * Orchestrates channels, providers, and message routing.
  */
-export class DMSEngine {
+export class DryadsEngine {
   readonly channels: ChannelManager
   readonly providers: ProviderManager
   readonly router: MessageRouter
@@ -53,9 +53,9 @@ export class DMSEngine {
 }
 
 // Singleton engine instance
-let engine: DMSEngine | null = null
+let engine: DryadsEngine | null = null
 
-export function getEngine(): DMSEngine {
-  if (!engine) engine = new DMSEngine()
+export function getEngine(): DryadsEngine {
+  if (!engine) engine = new DryadsEngine()
   return engine
 }

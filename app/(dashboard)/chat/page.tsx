@@ -178,7 +178,7 @@ export default function ChatPage() {
           <div className="flex h-full flex-col items-center justify-center text-text-muted">
             <MessageCircle className="mb-4 h-12 w-12 text-text-muted/50" strokeWidth={1} />
             <p className="text-lg font-medium text-text-secondary">Start a conversation</p>
-            <p className="text-sm">Type a message below to begin chatting with DMMS AI</p>
+            <p className="text-sm">Type a message below to begin chatting with Dryads AI</p>
           </div>
         )}
 

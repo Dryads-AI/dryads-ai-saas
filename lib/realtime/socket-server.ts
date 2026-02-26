@@ -1,5 +1,5 @@
 /**
- * DMMS AI — Browser-facing Socket.IO Server
+ * Dryads AI — Browser-facing Socket.IO Server
  * Relays gateway events (incoming messages, status changes) to browser clients.
  *
  * Runs inside the Next.js server process on REALTIME_PORT (default 3002).
