@@ -16,13 +16,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Message required" }, { status: 400 })
   }
 
-  // Resolve provider (default: openai)
-  const provider = aiProvider || "openai"
+  // Resolve provider from platform settings
+  let provider = aiProvider
+  let resolvedModel = model
 
-  // Get user's API key for the selected provider
+  if (!provider || !resolvedModel) {
+    const providerSetting = await pool.query('SELECT value FROM "PlatformSetting" WHERE key = $1', ["activeAiProvider"])
+    const modelSetting = await pool.query('SELECT value FROM "PlatformSetting" WHERE key = $1', ["activeAiModel"])
+    if (!provider) provider = providerSetting.rows[0]?.value || "openai"
+    if (!resolvedModel) resolvedModel = modelSetting.rows[0]?.value || "gpt-4o"
+  }
+
+  // Get platform API key: admin's key first, then env var fallback
   const apiKeyRes = await pool.query(
-    'SELECT "apiKey" FROM "UserApiKey" WHERE "userId" = $1 AND provider = $2',
-    [session.user.id, provider]
+    `SELECT u."apiKey" FROM "UserApiKey" u
+     JOIN "User" usr ON usr.id = u."userId"
+     WHERE usr.role = 'admin' AND u.provider = $1 LIMIT 1`,
+    [provider]
   )
 
   const envKeyMap: Record<string, string> = {
@@ -40,7 +50,7 @@ export async function POST(req: Request) {
 
   // Get or create conversation
   let convoId = conversationId
-  let aiModel = model || (provider === "gemini" ? "gemini-2.5-flash" : provider === "anthropic" ? "claude-sonnet-4-6" : "gpt-4o")
+  let aiModel = resolvedModel || (provider === "gemini" ? "gemini-2.5-flash" : provider === "anthropic" ? "claude-sonnet-4-6" : "gpt-4o")
 
   if (convoId) {
     const existing = await pool.query(

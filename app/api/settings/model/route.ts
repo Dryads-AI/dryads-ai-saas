@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, requireAdmin } from "@/lib/auth-helpers"
 import { pool } from "@/lib/db"
 
 const VALID_PROVIDERS = ["openai", "gemini", "anthropic"]
@@ -12,29 +11,28 @@ const VALID_MODELS: Record<string, string[]> = {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { error } = await requireAuth()
+  if (error) return error
 
-  // Read from User table columns (defaultAiProvider, defaultAiModel)
-  const result = await pool.query(
-    'SELECT "defaultAiProvider", "defaultAiModel" FROM "User" WHERE id = $1',
-    [session.user.id]
+  // Read from PlatformSetting table (global config)
+  const providerRes = await pool.query(
+    'SELECT value FROM "PlatformSetting" WHERE key = $1',
+    ["activeAiProvider"]
+  )
+  const modelRes = await pool.query(
+    'SELECT value FROM "PlatformSetting" WHERE key = $1',
+    ["activeAiModel"]
   )
 
-  const row = result.rows[0]
   return NextResponse.json({
-    aiProvider: row?.defaultAiProvider || "openai",
-    aiModel: row?.defaultAiModel || "gpt-4o",
+    aiProvider: providerRes.rows[0]?.value || "openai",
+    aiModel: modelRes.rows[0]?.value || "gpt-4o",
   })
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { error } = await requireAdmin()
+  if (error) return error
 
   const { aiProvider, aiModel } = await req.json()
 
@@ -52,9 +50,16 @@ export async function POST(req: Request) {
     )
   }
 
+  // Write to PlatformSetting table
   await pool.query(
-    'UPDATE "User" SET "defaultAiProvider" = $1, "defaultAiModel" = $2 WHERE id = $3',
-    [aiProvider, aiModel, session.user.id]
+    `INSERT INTO "PlatformSetting" (key, value, "updatedAt") VALUES ('activeAiProvider', $1, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $1, "updatedAt" = NOW()`,
+    [aiProvider]
+  )
+  await pool.query(
+    `INSERT INTO "PlatformSetting" (key, value, "updatedAt") VALUES ('activeAiModel', $1, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $1, "updatedAt" = NOW()`,
+    [aiModel]
   )
 
   return NextResponse.json({ ok: true })

@@ -21,8 +21,8 @@ export async function POST(req: Request) {
     const userName = name || email.split("@")[0]
 
     await pool.query(
-      'INSERT INTO "User" (id, email, password, name, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, email, hashed, userName, now, now]
+      'INSERT INTO "User" (id, email, password, name, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [id, email, hashed, userName, "user", now, now]
     )
 
     return NextResponse.json({ id, email, name: userName })

@@ -13,8 +13,15 @@ CREATE TABLE IF NOT EXISTS "User" (
   password TEXT,
   name TEXT,
   image TEXT,
+  role TEXT NOT NULL DEFAULT 'user',
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS "PlatformSetting" (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS "UserChannel" (
@@ -201,6 +208,19 @@ CREATE TABLE IF NOT EXISTS "user_reminder" (
   "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_user_reminder_pending ON "user_reminder"("userId", delivered, remind_at);
+
+-- Migration: Add role column to User
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+
+-- Migration: Create PlatformSetting table
+CREATE TABLE IF NOT EXISTS "PlatformSetting" (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Migration: Set admin role for seeded admin
+UPDATE "User" SET role = 'admin' WHERE email = 'admin@admin.com' AND role = 'user';
 `
 
 async function initDb() {
@@ -227,13 +247,20 @@ async function initDb() {
     const id = cuid()
     const now = new Date().toISOString()
     await pool.query(
-      'INSERT INTO "User" (id, email, password, name, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, "admin@admin.com", hashed, "Admin", now, now]
+      'INSERT INTO "User" (id, email, password, name, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [id, "admin@admin.com", hashed, "Admin", "admin", now, now]
     )
     console.log("Admin user created: admin@admin.com / Admin@2020")
   } else {
     console.log("Admin user already exists.")
   }
+
+  // Seed platform settings defaults
+  await pool.query(`
+    INSERT INTO "PlatformSetting" (key, value) VALUES ('activeAiProvider', 'openai') ON CONFLICT (key) DO NOTHING;
+    INSERT INTO "PlatformSetting" (key, value) VALUES ('activeAiModel', 'gpt-4o') ON CONFLICT (key) DO NOTHING;
+  `)
+  console.log("Platform settings seeded.")
 
   await pool.end()
   console.log("Database initialized successfully!")

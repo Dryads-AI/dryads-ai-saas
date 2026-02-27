@@ -4,14 +4,8 @@ import { useSession } from "next-auth/react"
 import { Card, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { MessageCircle, Zap, Archive, Settings, Radio, MessagesSquare, BarChart3 } from "lucide-react"
-
-const quickLinks = [
-  { href: "/chat", label: "Chat Playground", desc: "Test your AI in the browser", icon: MessageCircle, color: "text-teal-400 bg-teal-500/10" },
-  { href: "/channels", label: "Channels", desc: "Connect messengers", icon: Zap, color: "text-amber-400 bg-amber-500/10" },
-  { href: "/conversations", label: "Conversations", desc: "View all chats", icon: Archive, color: "text-violet-400 bg-violet-500/10" },
-  { href: "/settings", label: "Settings", desc: "API keys & preferences", icon: Settings, color: "text-sky-400 bg-sky-500/10" },
-]
+import { MessageCircle, Zap, Archive, Settings, Radio, MessagesSquare, BarChart3, Shield } from "lucide-react"
+import { useRole } from "@/hooks/useRole"
 
 const statCards = [
   { label: "Connected Channels", value: "0", icon: Radio, color: "text-teal-400" },
@@ -21,6 +15,17 @@ const statCards = [
 
 export default function DashboardPage() {
   const { data: session } = useSession()
+  const { isAdmin } = useRole()
+
+  const quickLinks = [
+    { href: "/chat", label: "Chat Playground", desc: "Test your AI in the browser", icon: MessageCircle, color: "text-teal-400 bg-teal-500/10" },
+    { href: "/channels", label: "Channels", desc: "Connect messengers", icon: Zap, color: "text-amber-400 bg-amber-500/10" },
+    { href: "/conversations", label: "Conversations", desc: "View all chats", icon: Archive, color: "text-violet-400 bg-violet-500/10" },
+    { href: "/settings", label: "Settings", desc: isAdmin ? "API keys & preferences" : "Profile & preferences", icon: Settings, color: "text-sky-400 bg-sky-500/10" },
+    ...(isAdmin
+      ? [{ href: "/admin", label: "Admin Panel", desc: "Users, AI config & platform", icon: Shield, color: "text-rose-400 bg-rose-500/10" }]
+      : []),
+  ]
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">

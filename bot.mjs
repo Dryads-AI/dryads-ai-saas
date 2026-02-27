@@ -128,6 +128,23 @@ async function ensureTables() {
       "createdAt" TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_user_reminder_pending ON "user_reminder"("userId", delivered, remind_at);
+
+    -- Migration: Add role column to User
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+
+    -- Migration: Create PlatformSetting table
+    CREATE TABLE IF NOT EXISTS "PlatformSetting" (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Migration: Set admin role for seeded admin
+    UPDATE "User" SET role = 'admin' WHERE email = 'admin@admin.com' AND role = 'user';
+
+    -- Seed platform settings defaults
+    INSERT INTO "PlatformSetting" (key, value) VALUES ('activeAiProvider', 'openai') ON CONFLICT (key) DO NOTHING;
+    INSERT INTO "PlatformSetting" (key, value) VALUES ('activeAiModel', 'gpt-4o') ON CONFLICT (key) DO NOTHING;
   `)
   console.log("[Gateway] Database tables ready.")
 }

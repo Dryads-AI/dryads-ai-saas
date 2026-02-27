@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
 import { Card, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { useRole } from "@/hooks/useRole"
+import { Cpu, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 const DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4o",
@@ -52,9 +52,7 @@ const PROVIDER_LOGOS: Record<string, React.FC<{ className?: string }>> = {
   anthropic: AnthropicLogo,
 }
 
-export default function SettingsPage() {
-  const { data: session } = useSession()
-  const { isAdmin } = useRole()
+export default function AdminAiConfigPage() {
   const [openaiKey, setOpenaiKey] = useState("")
   const [geminiKey, setGeminiKey] = useState("")
   const [anthropicKey, setAnthropicKey] = useState("")
@@ -69,17 +67,15 @@ export default function SettingsPage() {
   const [activating, setActivating] = useState(false)
 
   useEffect(() => {
-    if (isAdmin) {
-      fetch("/api/settings/apikeys")
-        .then((r) => r.json())
-        .then((data) => {
-          setSavedKeys(data || {})
-          if (data?.openai) setOpenaiKey("sk-\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")
-          if (data?.gemini) setGeminiKey("AI\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")
-          if (data?.anthropic) setAnthropicKey("sk-ant-\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")
-        })
-        .catch(() => {})
-    }
+    fetch("/api/settings/apikeys")
+      .then((r) => r.json())
+      .then((data) => {
+        setSavedKeys(data || {})
+        if (data?.openai) setOpenaiKey("sk-\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")
+        if (data?.gemini) setGeminiKey("AI\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")
+        if (data?.anthropic) setAnthropicKey("sk-ant-\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022")
+      })
+      .catch(() => {})
 
     fetch("/api/settings/model")
       .then((r) => r.json())
@@ -90,7 +86,7 @@ export default function SettingsPage() {
         }
       })
       .catch(() => {})
-  }, [isAdmin])
+  }, [])
 
   const saveApiKey = async (provider: string, key: string, setSaving: (v: boolean) => void) => {
     if (!key || key.includes("\u2022\u2022")) return
@@ -222,91 +218,77 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
-        <p className="text-sm text-text-secondary">
-          {isAdmin ? "Manage your account and AI configuration" : "Manage your account"}
-        </p>
+      <div className="flex items-center gap-4">
+        <Link href="/admin" className="text-text-muted hover:text-text-primary transition-colors">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <div>
+          <div className="flex items-center gap-2">
+            <Cpu className="h-6 w-6 text-teal-400" strokeWidth={1.5} />
+            <h1 className="text-2xl font-bold text-text-primary">AI Configuration</h1>
+          </div>
+          <p className="text-sm text-text-secondary">Manage API keys and select the active AI model for the platform</p>
+        </div>
       </div>
 
-      {/* Profile */}
+      {/* API Keys */}
       <Card>
-        <CardTitle>Profile</CardTitle>
-        <CardDescription>Your account information</CardDescription>
-        <div className="mt-4 space-y-3">
-          <div>
-            <label className="text-xs font-medium text-text-secondary">Email</label>
-            <p className="text-sm text-text-primary">{session?.user?.email}</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-text-secondary">Name</label>
-            <p className="text-sm text-text-primary">{session?.user?.name || "\u2014"}</p>
-          </div>
+        <CardTitle className="flex items-center gap-2">
+          API Keys
+          {(savedKeys.openai || savedKeys.gemini || savedKeys.anthropic) && <Badge variant="success">Configured</Badge>}
+        </CardTitle>
+        <CardDescription>
+          Add your AI provider API keys and activate the one you want to use. All users on the platform will use these keys.
+        </CardDescription>
+        <div className="mt-4 space-y-4">
+          {renderProviderCard("openai", "OpenAI", openaiKey, setOpenaiKey, savingOpenai, setSavingOpenai, "sk-...", "https://platform.openai.com/api-keys", "platform.openai.com")}
+          {renderProviderCard("gemini", "Google Gemini", geminiKey, setGeminiKey, savingGemini, setSavingGemini, "AIza...", "https://aistudio.google.com/apikey", "aistudio.google.com")}
+          {renderProviderCard("anthropic", "Anthropic (Claude)", anthropicKey, setAnthropicKey, savingAnthropic, setSavingAnthropic, "sk-ant-...", "https://console.anthropic.com/settings/keys", "console.anthropic.com")}
         </div>
       </Card>
 
-      {/* API Keys — Admin only */}
-      {isAdmin && (
-        <Card>
-          <CardTitle className="flex items-center gap-2">
-            API Keys
-            {(savedKeys.openai || savedKeys.gemini || savedKeys.anthropic) && <Badge variant="success">Configured</Badge>}
-          </CardTitle>
-          <CardDescription>
-            Add your AI provider API keys and activate the one you want to use. Only one provider can be active at a time.
-          </CardDescription>
-          <div className="mt-4 space-y-4">
-            {renderProviderCard("openai", "OpenAI", openaiKey, setOpenaiKey, savingOpenai, setSavingOpenai, "sk-...", "https://platform.openai.com/api-keys", "platform.openai.com")}
-            {renderProviderCard("gemini", "Google Gemini", geminiKey, setGeminiKey, savingGemini, setSavingGemini, "AIza...", "https://aistudio.google.com/apikey", "aistudio.google.com")}
-            {renderProviderCard("anthropic", "Anthropic (Claude)", anthropicKey, setAnthropicKey, savingAnthropic, setSavingAnthropic, "sk-ant-...", "https://console.anthropic.com/settings/keys", "console.anthropic.com")}
-          </div>
-        </Card>
-      )}
-
-      {/* AI Model — Admin only */}
-      {isAdmin && (
-        <Card>
-          <CardTitle className="flex items-center gap-2">
-            AI Model
-            {modelSaved && <Badge variant="success" className="text-[10px]">Saved</Badge>}
-            {savingModel && <span className="text-xs text-text-muted">Saving...</span>}
-          </CardTitle>
-          <CardDescription>
-            Select a model for the active provider: <span className="font-medium text-teal-400">{PROVIDER_LABELS[activeProvider]}</span>
-          </CardDescription>
-          <div className="mt-4 space-y-3">
-            <select
-              value={selectedModel}
-              onChange={(e) => saveModel(e.target.value)}
-              className="w-full rounded-xl border border-border-glass bg-surface-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              {activeProvider === "openai" && (
-                <optgroup label="OpenAI">
-                  <option value="openai:gpt-5.2-chat-latest">GPT-5.2 (Latest)</option>
-                  <option value="openai:gpt-4o">GPT-4o (Recommended)</option>
-                  <option value="openai:gpt-4o-mini">GPT-4o Mini (Faster)</option>
-                </optgroup>
-              )}
-              {activeProvider === "gemini" && (
-                <optgroup label="Google Gemini">
-                  <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
-                  <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
-                </optgroup>
-              )}
-              {activeProvider === "anthropic" && (
-                <optgroup label="Anthropic (Claude)">
-                  <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6 (Recommended)</option>
-                  <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
-                  <option value="anthropic:claude-opus-4-6">Claude Opus 4.6 (Most Capable)</option>
-                </optgroup>
-              )}
-            </select>
-            <p className="text-xs text-text-muted">
-              This applies to web chat and new messenger conversations. Changes take effect immediately.
-            </p>
-          </div>
-        </Card>
-      )}
+      {/* AI Model */}
+      <Card>
+        <CardTitle className="flex items-center gap-2">
+          AI Model
+          {modelSaved && <Badge variant="success" className="text-[10px]">Saved</Badge>}
+          {savingModel && <span className="text-xs text-text-muted">Saving...</span>}
+        </CardTitle>
+        <CardDescription>
+          Select a model for the active provider: <span className="font-medium text-teal-400">{PROVIDER_LABELS[activeProvider]}</span>
+        </CardDescription>
+        <div className="mt-4 space-y-3">
+          <select
+            value={selectedModel}
+            onChange={(e) => saveModel(e.target.value)}
+            className="w-full rounded-xl border border-border-glass bg-surface-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            {activeProvider === "openai" && (
+              <optgroup label="OpenAI">
+                <option value="openai:gpt-5.2-chat-latest">GPT-5.2 (Latest)</option>
+                <option value="openai:gpt-4o">GPT-4o (Recommended)</option>
+                <option value="openai:gpt-4o-mini">GPT-4o Mini (Faster)</option>
+              </optgroup>
+            )}
+            {activeProvider === "gemini" && (
+              <optgroup label="Google Gemini">
+                <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
+                <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
+              </optgroup>
+            )}
+            {activeProvider === "anthropic" && (
+              <optgroup label="Anthropic (Claude)">
+                <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6 (Recommended)</option>
+                <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
+                <option value="anthropic:claude-opus-4-6">Claude Opus 4.6 (Most Capable)</option>
+              </optgroup>
+            )}
+          </select>
+          <p className="text-xs text-text-muted">
+            This applies to all users&apos; web chat and new messenger conversations. Changes take effect immediately.
+          </p>
+        </div>
+      </Card>
     </div>
   )
 }

@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, MessageCircle, Inbox, Zap, Archive, Settings } from "lucide-react"
+import { LayoutDashboard, MessageCircle, Inbox, Zap, Archive, Settings, Shield } from "lucide-react"
+import { useRole } from "@/hooks/useRole"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -16,6 +17,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { isAdmin } = useRole()
 
   return (
     <aside className="sidebar-bg flex h-full w-64 flex-col border-r border-border-glass">
@@ -46,6 +48,25 @@ export function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Admin Panel — visible only to admins */}
+        {isAdmin && (
+          <>
+            <div className="my-2 border-t border-border-glass" />
+            <Link
+              href="/admin"
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                pathname?.startsWith("/admin")
+                  ? "bg-teal-500/15 text-teal-400 shadow-sm shadow-teal-500/10"
+                  : "text-text-secondary hover:bg-surface-card hover:text-text-primary"
+              )}
+            >
+              <Shield className="h-5 w-5 shrink-0" strokeWidth={1.5} />
+              Admin Panel
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Version */}

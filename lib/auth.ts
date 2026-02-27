@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
           if (!credentials?.email || !credentials?.password) return null
 
           const result = await pool.query(
-            'SELECT id, email, password, name, image FROM "User" WHERE email = $1',
+            'SELECT id, email, password, name, image, role FROM "User" WHERE email = $1',
             [credentials.email]
           )
           const user = result.rows[0]
@@ -32,7 +32,7 @@ export const authOptions: NextAuthOptions = {
           const valid = await bcrypt.compare(credentials.password, user.password)
           if (!valid) return null
 
-          return { id: user.id, email: user.email, name: user.name, image: user.image }
+          return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role || "user" }
         } catch (err) {
           console.error("[Auth] Error:", err)
           return null
@@ -50,11 +50,17 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id
+      if (user) {
+        token.id = user.id!
+        token.role = user.role || "user"
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user) (session.user as { id: string }).id = token.id as string
+      if (session.user) {
+        (session.user as { id: string; role: string }).id = token.id as string;
+        (session.user as { id: string; role: string }).role = token.role as string || "user"
+      }
       return session
     },
   },

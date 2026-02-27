@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAdmin } from "@/lib/auth-helpers"
 import { pool, cuid } from "@/lib/db"
 
 const VALID_PROVIDERS = ["openai", "gemini", "anthropic"]
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { user, error } = await requireAdmin()
+  if (error) return error
 
   const result = await pool.query(
     'SELECT provider FROM "UserApiKey" WHERE "userId" = $1',
-    [session.user.id]
+    [user!.id]
   )
 
   const keys: Record<string, boolean> = {}
@@ -23,10 +20,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  const { user, error } = await requireAdmin()
+  if (error) return error
 
   const body = await req.json()
   const provider = body.provider
@@ -43,7 +38,7 @@ export async function POST(req: Request) {
 
   const existing = await pool.query(
     'SELECT id FROM "UserApiKey" WHERE "userId" = $1 AND provider = $2',
-    [session.user.id, provider]
+    [user!.id, provider]
   )
 
   if (existing.rows.length > 0) {
@@ -56,7 +51,7 @@ export async function POST(req: Request) {
     const now = new Date().toISOString()
     await pool.query(
       'INSERT INTO "UserApiKey" (id, "userId", provider, "apiKey", "isDefault", "createdAt") VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, session.user.id, provider, apiKey, true, now]
+      [id, user!.id, provider, apiKey, true, now]
     )
   }
 

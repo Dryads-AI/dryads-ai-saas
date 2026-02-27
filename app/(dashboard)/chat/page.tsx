@@ -2,13 +2,26 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Send, MessageCircle, Plus } from "lucide-react"
+import { useRole } from "@/hooks/useRole"
 
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
+}
+
+const MODEL_LABELS: Record<string, string> = {
+  "openai:gpt-5.2-chat-latest": "GPT-5.2",
+  "openai:gpt-4o": "GPT-4o",
+  "openai:gpt-4o-mini": "GPT-4o Mini",
+  "gemini:gemini-2.5-flash": "Gemini 2.5 Flash",
+  "gemini:gemini-2.5-pro": "Gemini 2.5 Pro",
+  "anthropic:claude-sonnet-4-6": "Claude Sonnet 4.6",
+  "anthropic:claude-haiku-4-5-20251001": "Claude Haiku 4.5",
+  "anthropic:claude-opus-4-6": "Claude Opus 4.6",
 }
 
 export default function ChatPage() {
@@ -19,12 +32,13 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState("openai:gpt-4o")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const { isAdmin } = useRole()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Load user's default model from settings
+  // Load platform default model from settings
   useEffect(() => {
     fetch("/api/settings/model")
       .then((r) => r.json())
@@ -145,26 +159,32 @@ export default function ChatPage() {
           <p className="text-sm text-text-secondary">Test your AI assistant</p>
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="rounded-xl border border-border-glass bg-surface-card px-2 py-1.5 text-xs text-text-secondary focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            <optgroup label="OpenAI">
-              <option value="openai:gpt-5.2-chat-latest">GPT-5.2</option>
-              <option value="openai:gpt-4o">GPT-4o</option>
-              <option value="openai:gpt-4o-mini">GPT-4o Mini</option>
-            </optgroup>
-            <optgroup label="Gemini">
-              <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash</option>
-              <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
-            </optgroup>
-            <optgroup label="Claude">
-              <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6</option>
-              <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
-              <option value="anthropic:claude-opus-4-6">Claude Opus 4.6</option>
-            </optgroup>
-          </select>
+          {isAdmin ? (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="rounded-xl border border-border-glass bg-surface-card px-2 py-1.5 text-xs text-text-secondary focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <optgroup label="OpenAI">
+                <option value="openai:gpt-5.2-chat-latest">GPT-5.2</option>
+                <option value="openai:gpt-4o">GPT-4o</option>
+                <option value="openai:gpt-4o-mini">GPT-4o Mini</option>
+              </optgroup>
+              <optgroup label="Gemini">
+                <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash</option>
+                <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
+              </optgroup>
+              <optgroup label="Claude">
+                <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+                <option value="anthropic:claude-opus-4-6">Claude Opus 4.6</option>
+              </optgroup>
+            </select>
+          ) : (
+            <Badge variant="outline" className="text-xs text-text-secondary">
+              {MODEL_LABELS[selectedModel] || selectedModel.split(":").pop()}
+            </Badge>
+          )}
           <Button variant="outline" size="sm" onClick={newChat}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             New Chat
